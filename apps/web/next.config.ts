@@ -3,17 +3,15 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@drip/db", "@drip/engine"],
-  experimental: {
-    outputFileTracingIncludes: {
-      "/api/**": [
-        path.join(__dirname, "../../node_modules/.prisma/client/**"),
-        path.join(__dirname, "../../node_modules/@prisma/client/**"),
-      ],
-      "/dashboard/**": [
-        path.join(__dirname, "../../node_modules/.prisma/client/**"),
-        path.join(__dirname, "../../node_modules/@prisma/client/**"),
-      ],
-    },
+  outputFileTracingIncludes: {
+    "/api/**": [
+      path.join(__dirname, "../../node_modules/.prisma/client/**"),
+      path.join(__dirname, "../../node_modules/@prisma/client/**"),
+    ],
+    "/dashboard/**": [
+      path.join(__dirname, "../../node_modules/.prisma/client/**"),
+      path.join(__dirname, "../../node_modules/@prisma/client/**"),
+    ],
   },
 };
 
