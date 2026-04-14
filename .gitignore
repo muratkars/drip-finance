@@ -27,6 +27,7 @@ Thumbs.db
 
 # prisma
 packages/db/prisma/migrations/
+packages/db/generated/
 
 # misc
 *.log
