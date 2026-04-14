@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     take: 10,
   });
 
-  const serialized = recentTransactions.map((t) => ({
+  const serialized = recentTransactions.map((t: typeof recentTransactions[number]) => ({
     id: t.id,
     description: t.description,
     amount: t.amount.toNumber(),
