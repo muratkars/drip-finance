@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma, Prisma } from "@drip/db";
+import { prisma } from "@drip/db";
 import { computeSpread, assumptionToDays } from "@drip/engine";
 
 export async function GET() {
@@ -84,7 +84,7 @@ export async function PUT(req: NextRequest) {
         where: { id: tx.id },
         data: {
           spreadDays: spread.spreadDays,
-          dailyAmount: new Prisma.Decimal(spread.dailyAmount),
+          dailyAmount: (spread.dailyAmount),
         },
       });
       recalculated++;

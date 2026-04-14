@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Recalculate spread if category or spread changed
   if (spreadDays !== undefined) {
     updateData.spreadDays = spreadDays;
-    updateData.dailyAmount = new Prisma.Decimal(
+    updateData.dailyAmount = (
       Math.round((existing.amount.toNumber() / spreadDays) * 100) / 100
     );
   } else if (categoryId !== undefined || isRecurring !== undefined) {
@@ -95,7 +95,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     );
 
     updateData.spreadDays = spread.spreadDays;
-    updateData.dailyAmount = new Prisma.Decimal(spread.dailyAmount);
+    updateData.dailyAmount = (spread.dailyAmount);
   }
 
   const updated = await prisma.transaction.update({

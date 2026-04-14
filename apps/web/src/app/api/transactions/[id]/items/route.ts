@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma, Prisma } from "@drip/db";
+import { prisma } from "@drip/db";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -38,10 +38,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           transactionId: id,
           name: item.name,
           quantity: item.quantity,
-          unitPrice: new Prisma.Decimal(item.unitPrice),
-          totalPrice: new Prisma.Decimal(totalPrice),
+          unitPrice: (item.unitPrice),
+          totalPrice: (totalPrice),
           spreadDays: item.spreadDays,
-          dailyAmount: new Prisma.Decimal(dailyAmount),
+          dailyAmount: (dailyAmount),
           categoryId: item.categoryId || null,
         },
       });
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await prisma.transaction.update({
     where: { id },
     data: {
-      dailyAmount: new Prisma.Decimal(Math.round(totalDaily * 100) / 100),
+      dailyAmount: (Math.round(totalDaily * 100) / 100),
       spreadDays: maxSpread,
     },
   });
@@ -92,7 +92,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     where: { id },
     data: {
       spreadDays: 1,
-      dailyAmount: new Prisma.Decimal(amount),
+      dailyAmount: (amount),
     },
   });
 
