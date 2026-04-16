@@ -9,10 +9,10 @@ const nextConfig: NextConfig = {
     };
 
     if (isServer) {
-      // Output WASM files next to the server bundle where they can be found at runtime
+      // Place WASM files in the server chunks directory where the Lambda can find them
       config.output = {
         ...config.output,
-        webassemblyModuleFilename: "./../static/wasm/[modulehash].wasm",
+        webassemblyModuleFilename: "chunks/[modulehash].wasm",
       };
     }
 
