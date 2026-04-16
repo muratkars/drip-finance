@@ -2,16 +2,20 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@drip/db", "@drip/engine"],
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
     };
-    // Fix for WASM files in server components
-    config.module?.rules?.push({
-      test: /\.wasm$/,
-      type: "webassembly/async",
-    });
+
+    if (isServer) {
+      // Output WASM files next to the server bundle where they can be found at runtime
+      config.output = {
+        ...config.output,
+        webassemblyModuleFilename: "./../static/wasm/[modulehash].wasm",
+      };
+    }
+
     return config;
   },
 };
