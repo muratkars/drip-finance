@@ -99,14 +99,14 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl font-bold sm:text-2xl">Settings</h1>
+          <p className="text-sm text-muted-foreground">
             Adjust your assumptions to fine-tune your daily drip calculations
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
+        <Button onClick={handleSave} disabled={saving} className="gap-2 sm:self-start">
           <Save className="h-4 w-4" />
           {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
         </Button>

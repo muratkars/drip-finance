@@ -95,22 +95,22 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Transactions</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-bold sm:text-2xl">Transactions</h1>
         <Button onClick={() => setShowAdd(!showAdd)} className="gap-2">
-          <Plus className="h-4 w-4" /> Add Transaction
+          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add Transaction</span><span className="sm:hidden">Add</span>
         </Button>
       </div>
 
       {showAdd && (
         <Card>
           <CardContent className="pt-6">
-            <form onSubmit={handleAdd} className="flex flex-wrap gap-3">
+            <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
               <Input
                 placeholder="Description"
                 value={newTx.description}
                 onChange={(e) => setNewTx((p) => ({ ...p, description: e.target.value }))}
-                className="w-48"
+                className="lg:col-span-2"
                 required
               />
               <Input
@@ -119,7 +119,6 @@ export default function TransactionsPage() {
                 placeholder="Amount"
                 value={newTx.amount}
                 onChange={(e) => setNewTx((p) => ({ ...p, amount: e.target.value }))}
-                className="w-32"
                 required
               />
               <select
@@ -134,7 +133,6 @@ export default function TransactionsPage() {
                 type="date"
                 value={newTx.date}
                 onChange={(e) => setNewTx((p) => ({ ...p, date: e.target.value }))}
-                className="w-40"
               />
               <select
                 value={newTx.categoryId}
@@ -150,13 +148,13 @@ export default function TransactionsPage() {
                     </option>
                   ))}
               </select>
-              <Button type="submit">Save</Button>
+              <Button type="submit" className="sm:col-span-2 lg:col-span-6">Save</Button>
             </form>
           </CardContent>
         </Card>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <select
           value={filter.type}
           onChange={(e) => { setFilter((f) => ({ ...f, type: e.target.value })); setPage(1); }}
@@ -182,17 +180,18 @@ export default function TransactionsPage() {
 
       <Card>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b text-left text-sm text-muted-foreground">
-                <th className="w-8 p-4"></th>
-                <th className="p-4">Date</th>
-                <th className="p-4">Description</th>
-                <th className="p-4">Category</th>
-                <th className="p-4 text-right">Amount</th>
-                <th className="p-4 text-right">Daily</th>
-                <th className="p-4 text-right">Spread</th>
-                <th className="p-4"></th>
+                <th className="w-8 p-3 sm:p-4"></th>
+                <th className="hidden p-3 sm:table-cell sm:p-4">Date</th>
+                <th className="p-3 sm:p-4">Description</th>
+                <th className="hidden p-3 md:table-cell sm:p-4">Category</th>
+                <th className="p-3 text-right sm:p-4">Amount</th>
+                <th className="hidden p-3 text-right lg:table-cell sm:p-4">Daily</th>
+                <th className="hidden p-3 text-right lg:table-cell sm:p-4">Spread</th>
+                <th className="p-3 sm:p-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -203,29 +202,42 @@ export default function TransactionsPage() {
                     className={`cursor-pointer border-b transition-colors hover:bg-muted/50 ${expandedId === tx.id ? "bg-muted/30" : ""}`}
                     onClick={() => toggleExpand(tx.id)}
                   >
-                    <td className="p-4">
+                    <td className="p-3 sm:p-4">
                       {expandedId === tx.id ? (
                         <ChevronUp className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       )}
                     </td>
-                    <td className="p-4 text-sm">{formatDate(tx.date)}</td>
-                    <td className="p-4 text-sm font-medium">{tx.description}</td>
-                    <td className="p-4">
+                    <td className="hidden p-3 text-sm sm:table-cell sm:p-4">{formatDate(tx.date)}</td>
+                    <td className="p-3 text-sm font-medium sm:p-4">
+                      <div>{tx.description}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:hidden">
+                        <span>{formatDate(tx.date)}</span>
+                        {tx.category && (
+                          <Badge variant="secondary" className="gap-1 text-[10px]">
+                            {tx.category.icon} {tx.category.name}
+                          </Badge>
+                        )}
+                        {tx.spreadDays > 1 && (
+                          <span>{formatCurrency(tx.dailyAmount)}/d &middot; {tx.spreadDays}d</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="hidden p-3 md:table-cell sm:p-4">
                       {tx.category && (
                         <Badge variant="secondary" className="gap-1">
                           {tx.category.icon} {tx.category.name}
                         </Badge>
                       )}
                     </td>
-                    <td className={`p-4 text-right text-sm font-semibold ${tx.type === "INCOME" ? "text-green-600" : ""}`}>
+                    <td className={`p-3 text-right text-sm font-semibold sm:p-4 ${tx.type === "INCOME" ? "text-green-600" : ""}`}>
                       {tx.type === "INCOME" ? "+" : "-"}{formatCurrency(tx.amount)}
                     </td>
-                    <td className="p-4 text-right text-sm text-muted-foreground">
+                    <td className="hidden p-3 text-right text-sm text-muted-foreground lg:table-cell sm:p-4">
                       {formatCurrency(tx.dailyAmount)}/d
                     </td>
-                    <td className="p-4 text-right text-sm text-muted-foreground">
+                    <td className="hidden p-3 text-right text-sm text-muted-foreground lg:table-cell sm:p-4">
                       {tx.spreadDays}d
                     </td>
                     <td className="p-4 text-right">
@@ -259,6 +271,7 @@ export default function TransactionsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
 

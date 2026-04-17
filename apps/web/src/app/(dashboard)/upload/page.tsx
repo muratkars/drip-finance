@@ -120,8 +120,8 @@ export default function UploadPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Upload Statement</h1>
-        <p className="text-muted-foreground">Import transactions from your bank CSV</p>
+        <h1 className="text-xl font-bold sm:text-2xl">Upload Statement</h1>
+        <p className="text-sm text-muted-foreground">Import transactions from your bank CSV</p>
       </div>
 
       {!result && (
@@ -166,7 +166,7 @@ export default function UploadPage() {
         <>
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <FileText className="h-5 w-5" />
@@ -182,7 +182,7 @@ export default function UploadPage() {
                     {result.errors.length > 0 && ` (${result.errors.length} warnings)`}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="outline" onClick={() => setResult(null)}>
                     Cancel
                   </Button>
@@ -190,7 +190,7 @@ export default function UploadPage() {
                     <Check className="h-4 w-4" />
                     {committing
                       ? "Importing..."
-                      : `Import ${result.count - result.duplicateCount} Transaction${result.count - result.duplicateCount !== 1 ? "s" : ""}`}
+                      : `Import ${result.count - result.duplicateCount}`}
                   </Button>
                 </div>
               </div>

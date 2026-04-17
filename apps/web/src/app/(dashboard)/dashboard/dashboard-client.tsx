@@ -43,10 +43,10 @@ export function DripDashboard({ recentTransactions }: DripDashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Your financial overview at a glance</p>
+          <h1 className="text-xl font-bold sm:text-2xl">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Your financial overview at a glance</p>
         </div>
         <select
           value={days}

@@ -105,7 +105,7 @@ export function SpendingChart({ totals, timeline, groups, grandTotal, title }: S
         {totals.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">No data for this period.</p>
         ) : mode === "total" ? (
-          <div className="flex gap-6">
+          <div className="flex flex-col gap-6 lg:flex-row">
             <div className="flex-1">
               <ResponsiveContainer width="100%" height={300}>
                 {chartType === "pie" ? (
@@ -141,7 +141,7 @@ export function SpendingChart({ totals, timeline, groups, grandTotal, title }: S
                 )}
               </ResponsiveContainer>
             </div>
-            <div className="w-48 space-y-2">
+            <div className="w-full space-y-2 lg:w-48">
               <p className="text-lg font-bold">{formatCurrency(grandTotal)}</p>
               <p className="text-xs text-muted-foreground">Total</p>
               <div className="mt-4 space-y-1.5">

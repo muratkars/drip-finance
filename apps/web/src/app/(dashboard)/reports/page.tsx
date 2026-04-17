@@ -81,18 +81,18 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Reports</h1>
-        <p className="text-muted-foreground">Analyze your financial data</p>
+        <h1 className="text-xl font-bold sm:text-2xl">Reports</h1>
+        <p className="text-sm text-muted-foreground">Analyze your financial data</p>
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex rounded-lg border bg-card">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex overflow-x-auto rounded-lg border bg-card">
           {TABS.map((t, i) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors ${
                 tab === t.key
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -103,7 +103,7 @@ export default function ReportsPage() {
           ))}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {(tab === "spending" || tab === "income") && (
             <select
               value={groupBy}

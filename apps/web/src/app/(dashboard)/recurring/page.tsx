@@ -127,15 +127,15 @@ export default function RecurringPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Recurring</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl font-bold sm:text-2xl">Recurring</h1>
+          <p className="text-sm text-muted-foreground">
             {confirmed.length} recurring items &middot; ~{formatCurrency(monthlyTotal)}/month &middot;{" "}
             ~{formatCurrency(monthlyTotal / 30)}/day
           </p>
         </div>
-        <div className="flex rounded-md border">
+        <div className="flex self-start rounded-md border">
           <Button
             variant={view === "list" ? "default" : "ghost"}
             size="sm"
