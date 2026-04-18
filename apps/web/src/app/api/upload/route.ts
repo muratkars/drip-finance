@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@drip/db";
-import { parseCsv, categorizeBatch, transactionHash } from "@drip/engine";
+import { parseCsv, categorizeBatch, transactionHash, isTransferDescription } from "@drip/engine";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -83,16 +83,19 @@ export async function POST(req: NextRequest) {
     seenInFile.set(hash, fileCount + 1);
     const isDuplicateInFile = fileCount > 0;
 
+    const isTransfer = isTransferDescription(tx.description);
+
     return {
       hash,
       date: tx.date.toISOString(),
       description: tx.description,
       amount: tx.amount,
-      type: tx.type,
+      type: isTransfer ? "TRANSFER" as const : tx.type,
       categoryId: categorized[i].categoryId,
       categoryName: categoryLookup[categorized[i].categoryId]?.name || "Uncategorized",
       categoryIcon: categoryLookup[categorized[i].categoryId]?.icon || null,
       confidence: categorized[i].confidence,
+      isTransfer,
       isDuplicate: isDuplicateInDb || isDuplicateInFile,
       duplicateSource: isDuplicateInDb ? "existing" as const : isDuplicateInFile ? "file" as const : null,
     };

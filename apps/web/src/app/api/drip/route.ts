@@ -21,8 +21,9 @@ export async function GET(req: NextRequest) {
   const transactions = await prisma.transaction.findMany({
     where: {
       userId: session.user.id,
+      type: { not: "TRANSFER" }, // exclude transfers from drip calculation
       date: {
-        gte: new Date(startDate.getTime() - 365 * 24 * 60 * 60 * 1000), // look back up to a year for long-spread items
+        gte: new Date(startDate.getTime() - 365 * 24 * 60 * 60 * 1000),
         lte: endDate,
       },
     },

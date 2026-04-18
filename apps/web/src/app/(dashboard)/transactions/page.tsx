@@ -14,7 +14,7 @@ interface Transaction {
   description: string;
   amount: number;
   dailyAmount: number;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
   date: string;
   spreadDays: number;
   source: string;
@@ -163,6 +163,7 @@ export default function TransactionsPage() {
           <option value="">All types</option>
           <option value="EXPENSE">Expenses</option>
           <option value="INCOME">Income</option>
+          <option value="TRANSFER">Transfers</option>
         </select>
         <select
           value={filter.category}
@@ -231,8 +232,8 @@ export default function TransactionsPage() {
                         </Badge>
                       )}
                     </td>
-                    <td className={`p-3 text-right text-sm font-semibold sm:p-4 ${tx.type === "INCOME" ? "text-green-600" : ""}`}>
-                      {tx.type === "INCOME" ? "+" : "-"}{formatCurrency(tx.amount)}
+                    <td className={`p-3 text-right text-sm font-semibold sm:p-4 ${tx.type === "INCOME" ? "text-green-600" : tx.type === "TRANSFER" ? "text-blue-500" : ""}`}>
+                      {tx.type === "INCOME" ? "+" : tx.type === "TRANSFER" ? "" : "-"}{formatCurrency(tx.amount)}
                     </td>
                     <td className="hidden p-3 text-right text-sm text-muted-foreground lg:table-cell sm:p-4">
                       {formatCurrency(tx.dailyAmount)}/d

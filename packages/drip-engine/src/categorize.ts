@@ -70,6 +70,26 @@ const KEYWORD_MAP: [string[], string][] = [
   [["INTEREST", "DIVIDEND", "YIELD"], "Other Income"],
 ];
 
+// Keywords that indicate a transfer (not income or expense)
+const TRANSFER_KEYWORDS = [
+  "TRANSFER", "XFER", "ATM WITHDRAWAL", "ATM DEPOSIT",
+  "PAYMENT THANK YOU", "AUTOPAY", "ONLINE PAYMENT",
+  "ACH TRANSFER", "WIRE TRANSFER", "ZELLE",
+  "VENMO", "CASH APP", // person-to-person could be either, but default to transfer
+  "ROBINHOOD", "FIDELITY", "SCHWAB", "VANGUARD", "E*TRADE", "ETRADE",
+  "COINBASE", "CRYPTO",
+  "SAVINGS", "CHECKING",
+  "CREDIT CARD PAYMENT", "CC PAYMENT",
+];
+
+/**
+ * Detect if a transaction description looks like a transfer between accounts.
+ */
+export function isTransferDescription(description: string): boolean {
+  const upper = description.toUpperCase();
+  return TRANSFER_KEYWORDS.some((kw) => upper.includes(kw));
+}
+
 /**
  * Categorize a transaction description using rules.
  *

@@ -15,6 +15,7 @@ import {
   BarChart3,
   CalendarClock,
   Target,
+  Landmark,
   Menu,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/transactions", label: "Transactions", icon: ArrowUpDown },
   { href: "/recurring", label: "Recurring", icon: CalendarClock },
   { href: "/goals", label: "Goals", icon: Target },
