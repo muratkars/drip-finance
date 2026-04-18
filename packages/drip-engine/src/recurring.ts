@@ -13,6 +13,8 @@ interface TransactionInput {
   categoryName: string | null;
 }
 
+export type RecurringTypeGuess = "BILL" | "SUBSCRIPTION" | "INCOME";
+
 export interface DetectedRecurring {
   description: string;
   avgAmount: number;
@@ -24,9 +26,53 @@ export interface DetectedRecurring {
   transactionCount: number;
   transactionIds: string[];
   type: "INCOME" | "EXPENSE";
+  recurringType: RecurringTypeGuess;
   categoryId: string | null;
   categoryName: string | null;
   confidence: number;
+}
+
+// Categories that are typically bills (essential, hard to cancel)
+const BILL_CATEGORIES = new Set([
+  "Housing", "Utilities", "Insurance", "Transport", "Healthcare", "Education",
+]);
+
+// Categories that are typically subscriptions (discretionary, can cancel)
+const SUBSCRIPTION_CATEGORIES = new Set([
+  "Subscriptions", "Entertainment", "Coffee", "Dining", "Shopping",
+]);
+
+// Merchant keywords that suggest subscriptions
+const SUBSCRIPTION_KEYWORDS = [
+  "NETFLIX", "SPOTIFY", "HULU", "DISNEY", "HBO", "YOUTUBE", "APPLE.COM",
+  "AMAZON PRIME", "GYM", "FITNESS", "MEMBERSHIP", "SUBSCRIPTION",
+  "DROPBOX", "ICLOUD", "GOOGLE STORAGE", "ADOBE",
+];
+
+/**
+ * Guess whether a recurring transaction is a BILL, SUBSCRIPTION, or INCOME.
+ */
+function guessRecurringType(
+  txType: "INCOME" | "EXPENSE",
+  categoryName: string | null,
+  description: string,
+): RecurringTypeGuess {
+  if (txType === "INCOME") return "INCOME";
+
+  // Check merchant keywords first (most specific)
+  const upper = description.toUpperCase();
+  for (const kw of SUBSCRIPTION_KEYWORDS) {
+    if (upper.includes(kw)) return "SUBSCRIPTION";
+  }
+
+  // Check category
+  if (categoryName) {
+    if (BILL_CATEGORIES.has(categoryName)) return "BILL";
+    if (SUBSCRIPTION_CATEGORIES.has(categoryName)) return "SUBSCRIPTION";
+  }
+
+  // Default: if amount is large (>$50/mo), likely a bill; otherwise subscription
+  return "BILL";
 }
 
 const FREQUENCY_RANGES = [
@@ -148,6 +194,7 @@ export function detectRecurring(transactions: TransactionInput[]): DetectedRecur
       transactionCount: sorted.length,
       transactionIds: sorted.map((t) => t.id),
       type: sorted[0].type,
+      recurringType: guessRecurringType(sorted[0].type, sorted[0].categoryName, sorted[0].description),
       categoryId: sorted[0].categoryId,
       categoryName: sorted[0].categoryName,
       confidence: Math.round(bestConfidence * 100) / 100,

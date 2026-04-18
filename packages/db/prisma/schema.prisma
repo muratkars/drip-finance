@@ -112,6 +112,7 @@ model Transaction {
   rawCsvLine       String?
   isRecurring      Boolean           @default(false)
   recurringPeriod  RecurringPeriod?
+  recurringType    RecurringType?    // BILL, SUBSCRIPTION, or INCOME
   uploadBatchId    String?
   dedupHash        String?           // hash of date+description+amount for duplicate detection
 
@@ -218,6 +219,12 @@ enum MatchType {
   CONTAINS
   STARTS_WITH
   REGEX
+}
+
+enum RecurringType {
+  BILL          // essential, hard to cancel (mortgage, utilities, insurance)
+  SUBSCRIPTION  // discretionary, can cancel (Netflix, gym, SaaS)
+  INCOME        // recurring income (salary, freelance retainer)
 }
 
 enum RecurringPeriod {

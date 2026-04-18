@@ -10,7 +10,6 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get all transactions for detection (last 2 years)
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
@@ -35,7 +34,7 @@ export async function GET() {
 
   const detected = detectRecurring(input);
 
-  // Also get already-confirmed recurring transactions
+  // Get already-confirmed recurring transactions
   const confirmed = await prisma.transaction.findMany({
     where: {
       userId: session.user.id,
@@ -52,6 +51,7 @@ export async function GET() {
     amount: tx.amount.toNumber(),
     type: tx.type,
     recurringPeriod: tx.recurringPeriod,
+    recurringType: tx.recurringType || (tx.type === "INCOME" ? "INCOME" : "BILL"),
     date: tx.date.toISOString(),
     categoryName: tx.category?.name || null,
     categoryIcon: tx.category?.icon || null,
@@ -63,6 +63,17 @@ export async function GET() {
     (d) => !confirmedDescs.has(d.description.toUpperCase())
   );
 
+  // Compute totals by type
+  const billsMonthly = confirmedList
+    .filter((c) => c.recurringType === "BILL")
+    .reduce((sum, c) => sum + monthlyAmount(c.amount, c.recurringPeriod), 0);
+  const subscriptionsMonthly = confirmedList
+    .filter((c) => c.recurringType === "SUBSCRIPTION")
+    .reduce((sum, c) => sum + monthlyAmount(c.amount, c.recurringPeriod), 0);
+  const incomeMonthly = confirmedList
+    .filter((c) => c.recurringType === "INCOME")
+    .reduce((sum, c) => sum + monthlyAmount(c.amount, c.recurringPeriod), 0);
+
   return NextResponse.json({
     confirmed: confirmedList,
     suggestions: suggestions.map((s) => ({
@@ -70,7 +81,26 @@ export async function GET() {
       lastDate: s.lastDate.toISOString(),
       nextExpectedDate: s.nextExpectedDate.toISOString(),
     })),
+    totals: {
+      billsMonthly: Math.round(billsMonthly * 100) / 100,
+      billsDaily: Math.round((billsMonthly / 30) * 100) / 100,
+      subscriptionsMonthly: Math.round(subscriptionsMonthly * 100) / 100,
+      subscriptionsDaily: Math.round((subscriptionsMonthly / 30) * 100) / 100,
+      incomeMonthly: Math.round(incomeMonthly * 100) / 100,
+      incomeDaily: Math.round((incomeMonthly / 30) * 100) / 100,
+    },
   });
+}
+
+function monthlyAmount(amount: number, period: string | null): number {
+  switch (period) {
+    case "WEEKLY": return amount * 4.33;
+    case "BIWEEKLY": return amount * 2.17;
+    case "MONTHLY": return amount;
+    case "QUARTERLY": return amount / 3;
+    case "YEARLY": return amount / 12;
+    default: return amount;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -80,16 +110,16 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { transactionIds, recurringPeriod } = body as {
+  const { transactionIds, recurringPeriod, recurringType } = body as {
     transactionIds: string[];
     recurringPeriod: string;
+    recurringType?: string;
   };
 
   if (!transactionIds?.length || !recurringPeriod) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // Mark all matching transactions as recurring
   await prisma.transaction.updateMany({
     where: {
       id: { in: transactionIds },
@@ -98,6 +128,7 @@ export async function POST(req: NextRequest) {
     data: {
       isRecurring: true,
       recurringPeriod: recurringPeriod as any,
+      recurringType: (recurringType as any) || null,
     },
   });
 
