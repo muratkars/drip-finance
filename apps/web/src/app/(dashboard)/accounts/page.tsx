@@ -60,16 +60,20 @@ export default function AccountsPage() {
 
   async function fetchAccounts() {
     setLoading(true);
-    const res = await fetch("/api/accounts");
-    const data = await res.json();
-    setAccounts(data.accounts);
-    setSummary(data.summary);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/accounts");
+      if (!res.ok) return;
+      const data = await res.json();
+      setAccounts(data.accounts || []);
+      setSummary(data.summary || { totalAssets: 0, totalLiabilities: 0, netWorth: 0 });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/accounts", {
+    const res = await fetch("/api/accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -78,6 +82,7 @@ export default function AccountsPage() {
         color: ACCOUNT_COLORS[accounts.length % ACCOUNT_COLORS.length],
       }),
     });
+    if (!res.ok) return;
     setNewAccount({ name: "", type: "CHECKING", balance: "", institution: "", lastFour: "" });
     setShowAdd(false);
     fetchAccounts();
