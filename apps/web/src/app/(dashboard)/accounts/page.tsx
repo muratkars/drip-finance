@@ -62,10 +62,13 @@ export default function AccountsPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/accounts");
-      if (!res.ok) return;
-      const data = await res.json();
-      setAccounts(data.accounts || []);
-      setSummary(data.summary || { totalAssets: 0, totalLiabilities: 0, netWorth: 0 });
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data.accounts || []);
+        setSummary(data.summary || { totalAssets: 0, totalLiabilities: 0, netWorth: 0 });
+      }
+    } catch {
+      // ignore fetch errors
     } finally {
       setLoading(false);
     }
