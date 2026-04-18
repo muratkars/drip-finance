@@ -14,6 +14,7 @@ import {
   Droplets,
   BarChart3,
   CalendarClock,
+  Target,
   Menu,
   X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowUpDown },
   { href: "/recurring", label: "Recurring", icon: CalendarClock },
+  { href: "/goals", label: "Goals", icon: Target },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/upload", label: "Upload CSV", icon: Upload },
   { href: "/settings", label: "Settings", icon: Settings },

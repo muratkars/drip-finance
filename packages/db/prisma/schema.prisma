@@ -23,6 +23,7 @@ model User {
   transactions Transaction[]
   assumptions  Assumption[]
   categories   Category[]
+  goals        Goal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -175,7 +176,33 @@ model Assumption {
   @@unique([userId, key])
 }
 
+model Goal {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  type           GoalType
+  targetAmount   Decimal  @db.Decimal(12, 2)
+  currentAmount  Decimal  @default(0) @db.Decimal(12, 2)
+  targetDate     DateTime?
+  apr            Decimal? @db.Decimal(5, 2) // for PAY_DOWN goals
+  monthlyPayment Decimal? @db.Decimal(12, 2) // planned monthly contribution/payment
+  color          String?
+  isCompleted    Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
 // ─── Enums ──────────────────────────────────────────────────
+
+enum GoalType {
+  SAVE_UP
+  PAY_DOWN
+}
 
 enum TransactionType {
   INCOME
