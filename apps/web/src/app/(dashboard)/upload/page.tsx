@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { Upload, FileText, Check, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface PreviewTransaction {
   hash: string;
@@ -91,7 +92,11 @@ export default function UploadPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        toast.success(`Imported ${data.imported} transactions`);
         router.push(`/transactions`);
+      } else {
+        toast.error("Import failed");
       }
     } finally {
       setCommitting(false);

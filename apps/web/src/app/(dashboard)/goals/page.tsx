@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { Plus, Target, TrendingDown, Trash2, Check, X, Edit2, Droplets } from "lucide-react";
+import { toast } from "sonner";
 
 interface Goal {
   id: string;
@@ -90,6 +91,7 @@ export default function GoalsPage() {
         color: GOAL_COLORS[goals.length % GOAL_COLORS.length],
       }),
     });
+    toast.success("Goal created");
     setNewGoal({ name: "", type: "SAVE_UP", targetAmount: "", currentAmount: "", targetDate: "", apr: "", monthlyPayment: "" });
     setShowAdd(false);
     fetchGoals();
@@ -101,6 +103,7 @@ export default function GoalsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, currentAmount }),
     });
+    toast.success("Goal updated");
     setEditingId(null);
     fetchGoals();
   }

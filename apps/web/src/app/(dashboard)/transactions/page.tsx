@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Receipt, Paperclip } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import { TransactionDetail } from "@/components/transactions/transaction-detail";
+import { toast } from "sonner";
 
 interface Transaction {
   id: string;
@@ -69,7 +70,7 @@ export default function TransactionsPage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/transactions", {
+    const res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -77,14 +78,20 @@ export default function TransactionsPage() {
         amount: parseFloat(newTx.amount),
       }),
     });
-    setShowAdd(false);
-    setNewTx({ description: "", amount: "", type: "EXPENSE", date: new Date().toISOString().split("T")[0], categoryId: "" });
-    fetchTransactions();
+    if (res.ok) {
+      toast.success("Transaction added");
+      setShowAdd(false);
+      setNewTx({ description: "", amount: "", type: "EXPENSE", date: new Date().toISOString().split("T")[0], categoryId: "" });
+      fetchTransactions();
+    } else {
+      toast.error("Failed to add transaction");
+    }
   }
 
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
-    await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+    if (res.ok) toast.success("Transaction deleted");
     if (expandedId === id) setExpandedId(null);
     fetchTransactions();
   }

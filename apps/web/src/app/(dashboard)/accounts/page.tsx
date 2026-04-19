@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Plus, Trash2, Edit2, Check, X, Wallet, CreditCard,
   PiggyBank, TrendingUp, Banknote, Landmark,
@@ -85,18 +86,23 @@ export default function AccountsPage() {
         color: ACCOUNT_COLORS[accounts.length % ACCOUNT_COLORS.length],
       }),
     });
-    if (!res.ok) return;
-    setNewAccount({ name: "", type: "CHECKING", balance: "", institution: "", lastFour: "" });
-    setShowAdd(false);
-    fetchAccounts();
+    if (res.ok) {
+      toast.success("Account added");
+      setNewAccount({ name: "", type: "CHECKING", balance: "", institution: "", lastFour: "" });
+      setShowAdd(false);
+      fetchAccounts();
+    } else {
+      toast.error("Failed to add account");
+    }
   }
 
   async function updateBalance(id: string) {
-    await fetch("/api/accounts", {
+    const res = await fetch("/api/accounts", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, balance: parseFloat(editBalance) || 0 }),
     });
+    if (res.ok) toast.success("Balance updated");
     setEditingId(null);
     fetchAccounts();
   }
