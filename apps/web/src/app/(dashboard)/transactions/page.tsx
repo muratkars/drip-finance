@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+import { Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Upload, FileText, Check, X } from "lucide-react";
 import { TransactionDetail } from "@/components/transactions/transaction-detail";
 import { toast } from "sonner";
 
@@ -36,7 +38,11 @@ export default function TransactionsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [filter, setFilter] = useState({ type: "", category: "" });
   const [showAdd, setShowAdd] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<any>(null);
+  const [committing, setCommitting] = useState(false);
   const [newTx, setNewTx] = useState({
     description: "",
     amount: "",
@@ -100,14 +106,178 @@ export default function TransactionsPage() {
     setExpandedId(expandedId === id ? null : id);
   }
 
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadPreview(null);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (res.ok) {
+        setUploadPreview(await res.json());
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Upload failed");
+      }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  async function handleCommitUpload() {
+    if (!uploadPreview) return;
+    setCommitting(true);
+    const nonDuplicates = uploadPreview.preview.filter((tx: any) => !tx.isDuplicate);
+    try {
+      const res = await fetch("/api/upload/commit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactions: nonDuplicates.map((tx: any) => ({
+            hash: tx.hash, date: tx.date, description: tx.description,
+            amount: tx.amount, type: tx.type, categoryId: tx.categoryId,
+          })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Imported ${data.imported} transactions`);
+        setUploadPreview(null);
+        setShowUpload(false);
+        fetchTransactions();
+      }
+    } finally {
+      setCommitting(false);
+    }
+  }
+
+  function handleUploadCategoryChange(hash: string, newCategoryId: string) {
+    if (!uploadPreview) return;
+    const cat = uploadPreview.categories.find((c: any) => c.id === newCategoryId);
+    setUploadPreview({
+      ...uploadPreview,
+      preview: uploadPreview.preview.map((tx: any) =>
+        tx.hash === hash ? { ...tx, categoryId: newCategoryId, categoryName: cat?.name || "Uncategorized" } : tx
+      ),
+    });
+  }
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "text/csv": [".csv"], "application/pdf": [".pdf"] },
+    maxFiles: 1,
+    noClick: false,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold sm:text-2xl">Transactions</h1>
-        <Button onClick={() => setShowAdd(!showAdd)} className="gap-2">
-          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add Transaction</span><span className="sm:hidden">Add</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setShowUpload(!showUpload); setShowAdd(false); setUploadPreview(null); }} className="gap-2">
+            <Upload className="h-4 w-4" /> <span className="hidden sm:inline">Import</span>
+          </Button>
+          <Button onClick={() => { setShowAdd(!showAdd); setShowUpload(false); }} className="gap-2">
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add</span>
+          </Button>
+        </div>
       </div>
+
+      {/* Upload Section */}
+      {showUpload && !uploadPreview && (
+        <Card>
+          <CardContent className="pt-6">
+            <div
+              {...getRootProps()}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+              }`}
+            >
+              <input {...getInputProps()} />
+              <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
+              {uploading ? (
+                <p className="text-sm text-muted-foreground">Parsing file...</p>
+              ) : (
+                <>
+                  <p className="text-sm font-medium">Drop CSV or PDF statement here</p>
+                  <p className="mt-1 text-xs text-muted-foreground">or click to browse</p>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upload Preview */}
+      {uploadPreview && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  <FileText className="mr-1 inline h-4 w-4" />
+                  {uploadPreview.count} transactions ({uploadPreview.format})
+                  {uploadPreview.duplicateCount > 0 && (
+                    <span className="ml-2 text-amber-600">{uploadPreview.duplicateCount} duplicates</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => { setUploadPreview(null); setShowUpload(false); }}>
+                  <X className="mr-1 h-3 w-3" /> Cancel
+                </Button>
+                <Button size="sm" onClick={handleCommitUpload} disabled={committing} className="gap-1">
+                  <Check className="h-3 w-3" />
+                  {committing ? "Importing..." : `Import ${uploadPreview.count - (uploadPreview.duplicateCount || 0)}`}
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-[300px] overflow-auto rounded-md border">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card">
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="p-2">Date</th>
+                    <th className="p-2">Description</th>
+                    <th className="p-2">Category</th>
+                    <th className="p-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uploadPreview.preview.map((tx: any, i: number) => (
+                    <tr key={`${tx.hash}-${i}`} className={`border-b ${tx.isDuplicate ? "opacity-40" : ""}`}>
+                      <td className="p-2 text-xs">{new Date(tx.date).toLocaleDateString()}</td>
+                      <td className="max-w-[200px] truncate p-2 text-xs">
+                        {tx.description}
+                        {tx.isDuplicate && <span className="ml-1 text-amber-600">(dup)</span>}
+                        {tx.isTransfer && <span className="ml-1 text-blue-500">(transfer)</span>}
+                      </td>
+                      <td className="p-2">
+                        <select
+                          value={tx.categoryId}
+                          onChange={(e) => handleUploadCategoryChange(tx.hash, e.target.value)}
+                          className="rounded border bg-background px-1 py-0.5 text-xs"
+                          disabled={tx.isDuplicate}
+                        >
+                          {uploadPreview.categories
+                            .filter((c: any) => c.type === tx.type || tx.type === "TRANSFER")
+                            .map((c: any) => (
+                              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                            ))}
+                        </select>
+                      </td>
+                      <td className="p-2 text-right text-xs font-medium">{formatCurrency(tx.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showAdd && (
         <Card>

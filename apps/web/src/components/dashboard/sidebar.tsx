@@ -28,8 +28,6 @@ const NAV_ITEMS = [
   { href: "/recurring", label: "Recurring", icon: CalendarClock },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/upload", label: "Upload CSV", icon: Upload },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -126,15 +124,24 @@ export function Sidebar({ user }: SidebarProps) {
             <p className="font-medium">{user.name || "User"}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex gap-1">
+            <Link
+              href="/settings"
+              onClick={closeMobile}
+              className="flex flex-1 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </aside>
     </>
