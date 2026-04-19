@@ -5,6 +5,7 @@ import { DripSummary } from "@/components/dashboard/drip-summary";
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown";
 import { TrendChart } from "@/components/dashboard/trend-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { ReceiptReminders } from "@/components/dashboard/receipt-reminders";
 
 interface DripData {
   summary: {
@@ -59,6 +60,8 @@ export function DripDashboard({ recentTransactions }: DripDashboardProps) {
           <option value={365}>Last year</option>
         </select>
       </div>
+
+      <ReceiptReminders />
 
       <DripSummary
         avgDailyIncome={dripData?.summary.avgDailyIncome ?? 0}

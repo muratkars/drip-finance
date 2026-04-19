@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@drip/db";
-import { parseCsv, categorizeBatch, transactionHash, isTransferDescription } from "@drip/engine";
+import { parseCsv, parsePdf, categorizeBatch, transactionHash, isTransferDescription } from "@drip/engine";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,13 +12,32 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
+  const accountId = formData.get("accountId") as string | null;
 
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const csvContent = await file.text();
-  const { transactions: parsed, format, errors } = parseCsv(csvContent);
+  // Parse based on file type
+  let parsed: Awaited<ReturnType<typeof parseCsv>>["transactions"];
+  let format: string;
+  let errors: string[];
+
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+  if (isPdf) {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const result = await parsePdf(buffer);
+    parsed = result.transactions;
+    format = "PDF Statement";
+    errors = result.errors;
+  } else {
+    const csvContent = await file.text();
+    const result = parseCsv(csvContent);
+    parsed = result.transactions;
+    format = result.format;
+    errors = result.errors;
+  }
 
   if (parsed.length === 0) {
     return NextResponse.json(

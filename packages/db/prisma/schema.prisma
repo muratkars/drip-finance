@@ -140,6 +140,7 @@ model Transaction {
   recurringType    RecurringType?
   uploadBatchId    String?
   dedupHash        String?
+  receiptStatus    ReceiptStatus     @default(PENDING) // for receipt reminder system
 
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category?          @relation(fields: [categoryId], references: [id])
@@ -232,6 +233,13 @@ model Goal {
 enum GoalType {
   SAVE_UP
   PAY_DOWN
+}
+
+enum ReceiptStatus {
+  PENDING     // no receipt, hasn't been prompted yet
+  DISMISSED   // user said "not needed"
+  MISSING     // user confirmed no receipt available
+  UPLOADED    // receipt attached
 }
 
 enum FinancialAccountType {

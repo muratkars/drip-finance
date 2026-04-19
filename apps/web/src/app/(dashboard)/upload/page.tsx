@@ -113,7 +113,7 @@ export default function UploadPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "text/csv": [".csv"] },
+    accept: { "text/csv": [".csv"], "application/pdf": [".pdf"] },
     maxFiles: 1,
   });
 
@@ -121,7 +121,7 @@ export default function UploadPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold sm:text-2xl">Upload Statement</h1>
-        <p className="text-sm text-muted-foreground">Import transactions from your bank CSV</p>
+        <p className="text-sm text-muted-foreground">Import transactions from your bank CSV or PDF statement</p>
       </div>
 
       {!result && (
@@ -144,7 +144,7 @@ export default function UploadPage() {
                   <p className="font-medium">Drag & drop your CSV file here</p>
                   <p className="mt-1 text-sm text-muted-foreground">or click to browse</p>
                   <p className="mt-4 text-xs text-muted-foreground">
-                    Supports Chase, generic bank formats, and debit/credit column formats
+                    Supports CSV (Chase, generic, debit/credit) and PDF bank statements
                   </p>
                 </>
               )}
