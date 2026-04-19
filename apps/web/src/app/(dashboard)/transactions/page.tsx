@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,20 +41,22 @@ interface FinAccount {
 }
 
 export default function TransactionsPage() {
+  const searchParams = useSearchParams();
+  const accountFromUrl = searchParams.get("account") || "";
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<FinAccount[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filter, setFilter] = useState(() => {
-    // Read account filter from URL on initial render (no race condition)
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const acct = params.get("account") || "";
-      return { type: "", category: "", account: acct };
-    }
-    return { type: "", category: "", account: "" };
-  });
+  const [filter, setFilter] = useState({ type: "", category: "", account: "" });
+  const [initialized, setInitialized] = useState(false);
+
+  // Sync URL param to filter state on mount and when URL changes
+  useEffect(() => {
+    setFilter((f) => ({ ...f, account: accountFromUrl }));
+    setInitialized(true);
+  }, [accountFromUrl]);
   const [showAdd, setShowAdd] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -71,10 +74,11 @@ export default function TransactionsPage() {
   });
 
   useEffect(() => {
+    if (!initialized) return;
     fetchTransactions();
     fetchCategories();
     fetchAccounts();
-  }, [page, filter]);
+  }, [page, filter, initialized]);
 
   async function fetchAccounts() {
     const res = await fetch("/api/accounts");
