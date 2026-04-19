@@ -101,6 +101,23 @@ export default function TransactionsPage() {
     setCategories(await res.json());
   }
 
+  const unassignedCount = transactions.filter((t) => !t.fromAccount).length;
+
+  async function bulkAssignAccount(accountId: string) {
+    const unassigned = transactions.filter((t) => !t.fromAccount).map((t) => t.id);
+    if (unassigned.length === 0) return;
+    const res = await fetch("/api/transactions/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transactionIds: unassigned, accountId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      toast.success(`${data.updated} transactions assigned`);
+      fetchTransactions();
+    }
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const res = await fetch("/api/transactions", {
@@ -373,6 +390,26 @@ export default function TransactionsPage() {
             </form>
           </CardContent>
         </Card>
+      )}
+
+      {/* Unassigned transactions banner */}
+      {unassignedCount > 0 && accounts.length > 0 && !filter.account && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-800/30 dark:bg-amber-950/10">
+          <span className="text-amber-800 dark:text-amber-400">
+            {unassignedCount} transaction{unassignedCount > 1 ? "s" : ""} not linked to an account.
+          </span>
+          <span className="text-muted-foreground">Assign to:</span>
+          <select
+            onChange={(e) => { if (e.target.value) bulkAssignAccount(e.target.value); e.target.value = ""; }}
+            className="rounded-md border bg-background px-2 py-1 text-sm"
+            defaultValue=""
+          >
+            <option value="" disabled>Select account...</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}</option>
+            ))}
+          </select>
+        </div>
       )}
 
       <div className="flex flex-wrap gap-3">
