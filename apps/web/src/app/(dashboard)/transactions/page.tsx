@@ -22,6 +22,7 @@ interface Transaction {
   spreadDays: number;
   source: string;
   category: { id: string; name: string; icon: string | null; color: string | null } | null;
+  fromAccount: { id: string; name: string; type: string; lastFour: string | null } | null;
 }
 
 interface Category {
@@ -31,17 +32,26 @@ interface Category {
   type: string;
 }
 
+interface FinAccount {
+  id: string;
+  name: string;
+  type: string;
+  lastFour: string | null;
+}
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<FinAccount[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filter, setFilter] = useState({ type: "", category: "" });
+  const [filter, setFilter] = useState({ type: "", category: "", account: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<any>(null);
+  const [uploadAccountId, setUploadAccountId] = useState("");
   const [committing, setCommitting] = useState(false);
   const [newTx, setNewTx] = useState({
     description: "",
@@ -51,10 +61,26 @@ export default function TransactionsPage() {
     categoryId: "",
   });
 
+  // Read account filter from URL params (for linking from Accounts page)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const acct = params.get("account");
+    if (acct) setFilter((f) => ({ ...f, account: acct }));
+  }, []);
+
   useEffect(() => {
     fetchTransactions();
     fetchCategories();
+    fetchAccounts();
   }, [page, filter]);
+
+  async function fetchAccounts() {
+    const res = await fetch("/api/accounts");
+    if (res.ok) {
+      const data = await res.json();
+      setAccounts(data.accounts || []);
+    }
+  }
 
   async function fetchTransactions() {
     const params = new URLSearchParams({
@@ -62,6 +88,7 @@ export default function TransactionsPage() {
       limit: "20",
       ...(filter.type && { type: filter.type }),
       ...(filter.category && { category: filter.category }),
+      ...(filter.account && { account: filter.account }),
     });
     const res = await fetch(`/api/transactions?${params}`);
     const data = await res.json();
@@ -139,7 +166,7 @@ export default function TransactionsPage() {
         body: JSON.stringify({
           transactions: nonDuplicates.map((tx: any) => ({
             hash: tx.hash, date: tx.date, description: tx.description,
-            amount: tx.amount, type: tx.type, categoryId: tx.categoryId,
+            amount: tx.amount, type: tx.type, categoryId: tx.categoryId, accountId: uploadAccountId || undefined,
           })),
         }),
       });
@@ -191,6 +218,23 @@ export default function TransactionsPage() {
       {showUpload && !uploadPreview && (
         <Card>
           <CardContent className="pt-6">
+            {accounts.length > 0 && (
+              <div className="mb-4">
+                <label className="mb-1 block text-sm font-medium">Which account is this statement from?</label>
+                <select
+                  value={uploadAccountId}
+                  onChange={(e) => setUploadAccountId(e.target.value)}
+                  className="rounded-md border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select account (optional)</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div
               {...getRootProps()}
               className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
@@ -354,6 +398,18 @@ export default function TransactionsPage() {
             </option>
           ))}
         </select>
+        <select
+          value={filter.account}
+          onChange={(e) => { setFilter((f) => ({ ...f, account: e.target.value })); setPage(1); }}
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+        >
+          <option value="">All accounts</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}
+            </option>
+          ))}
+        </select>
       </div>
 
       <Card>
@@ -389,9 +445,21 @@ export default function TransactionsPage() {
                     </td>
                     <td className="hidden p-3 text-sm sm:table-cell sm:p-4">{formatDate(tx.date)}</td>
                     <td className="p-3 text-sm font-medium sm:p-4">
-                      <div>{tx.description}</div>
+                      <div className="flex items-center gap-2">
+                        <span>{tx.description}</span>
+                        {tx.fromAccount && (
+                          <span className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground lg:inline">
+                            {tx.fromAccount.name}{tx.fromAccount.lastFour ? ` ····${tx.fromAccount.lastFour}` : ""}
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:hidden">
                         <span>{formatDate(tx.date)}</span>
+                        {tx.fromAccount && (
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
+                            {tx.fromAccount.name}
+                          </span>
+                        )}
                         {tx.category && (
                           <Badge variant="secondary" className="gap-1 text-[10px]">
                             {tx.category.icon} {tx.category.name}

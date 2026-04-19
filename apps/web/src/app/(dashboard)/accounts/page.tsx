@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ export default function AccountsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const [newAccount, setNewAccount] = useState({
     name: "", type: "CHECKING", balance: "", institution: "", lastFour: "",
   });
@@ -208,6 +210,7 @@ export default function AccountsPage() {
                 onEditSave={() => updateBalance(acct.id)}
                 onEditChange={setEditBalance}
                 onDelete={() => deleteAccount(acct.id)}
+                onViewTransactions={() => router.push(`/transactions?account=${acct.id}`)}
               />
             ))}
           </div>
@@ -230,6 +233,7 @@ export default function AccountsPage() {
                 onEditSave={() => updateBalance(acct.id)}
                 onEditChange={setEditBalance}
                 onDelete={() => deleteAccount(acct.id)}
+                onViewTransactions={() => router.push(`/transactions?account=${acct.id}`)}
               />
             ))}
           </div>
@@ -255,7 +259,7 @@ export default function AccountsPage() {
 }
 
 function AccountCard({
-  account, editing, editBalance, onEditStart, onEditCancel, onEditSave, onEditChange, onDelete,
+  account, editing, editBalance, onEditStart, onEditCancel, onEditSave, onEditChange, onDelete, onViewTransactions,
 }: {
   account: FinancialAccount;
   editing: boolean;
@@ -265,12 +269,13 @@ function AccountCard({
   onEditSave: () => void;
   onEditChange: (val: string) => void;
   onDelete: () => void;
+  onViewTransactions: () => void;
 }) {
   const cfg = TYPE_CONFIG[account.type] || TYPE_CONFIG.CHECKING;
   const Icon = cfg.icon;
 
   return (
-    <Card>
+    <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={onViewTransactions}>
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -289,14 +294,14 @@ function AccountCard({
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
             <Trash2 className="h-3 w-3 text-muted-foreground" />
           </Button>
         </div>
 
         <div className="mt-4">
           {editing ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <Input
                 type="number"
                 step="0.01"
@@ -316,7 +321,7 @@ function AccountCard({
               <p className={`text-xl font-bold ${account.isAsset ? "" : "text-red-600"}`}>
                 {account.isAsset ? "" : "-"}{formatCurrency(Math.abs(account.balance))}
               </p>
-              <Button size="sm" variant="ghost" onClick={onEditStart} className="gap-1">
+              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEditStart(); }} className="gap-1">
                 <Edit2 className="h-3 w-3" /> Update
               </Button>
             </div>

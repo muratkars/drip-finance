@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get("to");
   const categoryId = searchParams.get("category");
   const type = searchParams.get("type") as "INCOME" | "EXPENSE" | null;
+  const accountId = searchParams.get("account");
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "50");
 
@@ -24,12 +25,13 @@ export async function GET(req: NextRequest) {
     ...(to && { date: { ...((from && { gte: new Date(from) }) || {}), lte: new Date(to) } }),
     ...(categoryId && { categoryId }),
     ...(type && { type }),
+    ...(accountId && { fromAccountId: accountId }),
   };
 
   const [transactions, total] = await Promise.all([
     prisma.transaction.findMany({
       where,
-      include: { category: true },
+      include: { category: true, fromAccount: { select: { id: true, name: true, type: true, lastFour: true } } },
       orderBy: { date: "desc" },
       skip: (page - 1) * limit,
       take: limit,

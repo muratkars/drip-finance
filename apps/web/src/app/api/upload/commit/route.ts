@@ -11,6 +11,7 @@ interface CommitTransaction {
   amount: number;
   type: "INCOME" | "EXPENSE";
   categoryId: string;
+  accountId?: string;
   rawCsvLine?: string;
 }
 
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
       spreadDays: spread.spreadDays,
       dailyAmount: (spread.dailyAmount),
       source: "CSV_IMPORT" as const,
+      fromAccountId: tx.accountId || null,
       rawCsvLine: tx.rawCsvLine || null,
       uploadBatchId: batchId,
       dedupHash: tx.hash || null,
