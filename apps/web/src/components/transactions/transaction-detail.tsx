@@ -43,12 +43,22 @@ interface Category {
   type: string;
 }
 
+interface AccountOption {
+  id: string;
+  name: string;
+  type: string;
+  lastFour: string | null;
+}
+
 interface TransactionDetailProps {
   transactionId: string;
   amount: number;
   description: string;
   spreadDays: number;
   categories: Category[];
+  accounts?: AccountOption[];
+  currentAccountId: string | null;
+  onAccountChange?: (accountId: string) => void;
   onUpdate: () => void;
 }
 
@@ -58,6 +68,9 @@ export function TransactionDetail({
   description,
   spreadDays: currentSpread,
   categories,
+  accounts,
+  currentAccountId,
+  onAccountChange,
   onUpdate,
 }: TransactionDetailProps) {
   const [items, setItems] = useState<TransactionItem[]>([]);
@@ -251,6 +264,25 @@ export function TransactionDetail({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={previewUrl} alt="Receipt" className="max-h-[75vh]" />
           </div>
+        </div>
+      )}
+
+      {/* Account assignment */}
+      {accounts && accounts.length > 0 && (
+        <div>
+          <h4 className="mb-2 text-sm font-semibold">Account</h4>
+          <select
+            value={currentAccountId || ""}
+            onChange={(e) => onAccountChange?.(e.target.value)}
+            className="rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">No account assigned</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

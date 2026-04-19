@@ -45,7 +45,15 @@ export default function TransactionsPage() {
   const [accounts, setAccounts] = useState<FinAccount[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filter, setFilter] = useState({ type: "", category: "", account: "" });
+  const [filter, setFilter] = useState(() => {
+    // Read account filter from URL on initial render (no race condition)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const acct = params.get("account") || "";
+      return { type: "", category: "", account: acct };
+    }
+    return { type: "", category: "", account: "" };
+  });
   const [showAdd, setShowAdd] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -53,6 +61,7 @@ export default function TransactionsPage() {
   const [uploadPreview, setUploadPreview] = useState<any>(null);
   const [uploadAccountId, setUploadAccountId] = useState("");
   const [committing, setCommitting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newTx, setNewTx] = useState({
     description: "",
     amount: "",
@@ -60,13 +69,6 @@ export default function TransactionsPage() {
     date: new Date().toISOString().split("T")[0],
     categoryId: "",
   });
-
-  // Read account filter from URL params (for linking from Accounts page)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const acct = params.get("account");
-    if (acct) setFilter((f) => ({ ...f, account: acct }));
-  }, []);
 
   useEffect(() => {
     fetchTransactions();
@@ -103,17 +105,50 @@ export default function TransactionsPage() {
 
   const unassignedCount = transactions.filter((t) => !t.fromAccount).length;
 
+  function toggleSelect(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === transactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(transactions.map((t) => t.id)));
+    }
+  }
+
   async function bulkAssignAccount(accountId: string) {
-    const unassigned = transactions.filter((t) => !t.fromAccount).map((t) => t.id);
-    if (unassigned.length === 0) return;
+    const ids = selectedIds.size > 0
+      ? Array.from(selectedIds)
+      : transactions.filter((t) => !t.fromAccount).map((t) => t.id);
+    if (ids.length === 0) return;
     const res = await fetch("/api/transactions/bulk", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transactionIds: unassigned, accountId }),
+      body: JSON.stringify({ transactionIds: ids, accountId }),
     });
     if (res.ok) {
       const data = await res.json();
       toast.success(`${data.updated} transactions assigned`);
+      setSelectedIds(new Set());
+      fetchTransactions();
+    }
+  }
+
+  async function updateTransactionAccount(txId: string, accountId: string) {
+    const res = await fetch("/api/transactions/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transactionIds: [txId], accountId }),
+    });
+    if (res.ok) {
+      toast.success("Account updated");
       fetchTransactions();
     }
   }
@@ -392,13 +427,24 @@ export default function TransactionsPage() {
         </Card>
       )}
 
-      {/* Unassigned transactions banner */}
-      {unassignedCount > 0 && accounts.length > 0 && !filter.account && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-800/30 dark:bg-amber-950/10">
-          <span className="text-amber-800 dark:text-amber-400">
-            {unassignedCount} transaction{unassignedCount > 1 ? "s" : ""} not linked to an account.
-          </span>
-          <span className="text-muted-foreground">Assign to:</span>
+      {/* Selection / assignment bar */}
+      {accounts.length > 0 && (selectedIds.size > 0 || unassignedCount > 0) && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800/30 dark:bg-blue-950/10">
+          {selectedIds.size > 0 ? (
+            <>
+              <span className="font-medium text-blue-800 dark:text-blue-400">
+                {selectedIds.size} selected
+              </span>
+              <span className="text-muted-foreground">Assign to:</span>
+            </>
+          ) : (
+            <>
+              <span className="text-amber-800 dark:text-amber-400">
+                {unassignedCount} without account
+              </span>
+              <span className="text-muted-foreground">Assign all to:</span>
+            </>
+          )}
           <select
             onChange={(e) => { if (e.target.value) bulkAssignAccount(e.target.value); e.target.value = ""; }}
             className="rounded-md border bg-background px-2 py-1 text-sm"
@@ -409,6 +455,11 @@ export default function TransactionsPage() {
               <option key={a.id} value={a.id}>{a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}</option>
             ))}
           </select>
+          {selectedIds.size > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs">
+              Clear selection
+            </Button>
+          )}
         </div>
       )}
 
@@ -455,6 +506,15 @@ export default function TransactionsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b text-left text-sm text-muted-foreground">
+                <th className="w-8 p-3 sm:p-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === transactions.length && transactions.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
                 <th className="w-8 p-3 sm:p-4"></th>
                 <th className="hidden p-3 sm:table-cell sm:p-4">Date</th>
                 <th className="p-3 sm:p-4">Description</th>
@@ -470,9 +530,17 @@ export default function TransactionsPage() {
                 <>
                   <tr
                     key={tx.id}
-                    className={`cursor-pointer border-b transition-colors hover:bg-muted/50 ${expandedId === tx.id ? "bg-muted/30" : ""}`}
+                    className={`cursor-pointer border-b transition-colors hover:bg-muted/50 ${expandedId === tx.id ? "bg-muted/30" : ""} ${selectedIds.has(tx.id) ? "bg-blue-50 dark:bg-blue-950/10" : ""}`}
                     onClick={() => toggleExpand(tx.id)}
                   >
+                    <td className="p-3 sm:p-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(tx.id)}
+                        onChange={() => toggleSelect(tx.id, { stopPropagation: () => {} } as any)}
+                        className="rounded"
+                      />
+                    </td>
                     <td className="p-3 sm:p-4">
                       {expandedId === tx.id ? (
                         <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -531,13 +599,16 @@ export default function TransactionsPage() {
                   </tr>
                   {expandedId === tx.id && (
                     <tr key={`${tx.id}-detail`}>
-                      <td colSpan={8}>
+                      <td colSpan={9}>
                         <TransactionDetail
                           transactionId={tx.id}
                           amount={tx.amount}
                           description={tx.description}
                           spreadDays={tx.spreadDays}
                           categories={categories}
+                          accounts={accounts}
+                          currentAccountId={tx.fromAccount?.id || null}
+                          onAccountChange={(accountId) => updateTransactionAccount(tx.id, accountId)}
                           onUpdate={fetchTransactions}
                         />
                       </td>
@@ -547,7 +618,7 @@ export default function TransactionsPage() {
               ))}
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     No transactions found. Upload a CSV or add one manually.
                   </td>
                 </tr>
