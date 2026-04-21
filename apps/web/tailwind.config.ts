@@ -33,7 +33,7 @@ const config: Config = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "hsl(var(--accent-tw))",
           foreground: "hsl(var(--accent-foreground))",
         },
         card: {
@@ -48,6 +48,12 @@ const config: Config = {
           DEFAULT: "hsl(var(--drip))",
           foreground: "hsl(var(--drip-foreground))",
         },
+      },
+      fontFamily: {
+        display: ["var(--font-display)"],
+        sans: ["var(--font-sans)"],
+        num: ["var(--font-num)"],
+        mono: ["var(--font-mono)"],
       },
       borderRadius: {
         lg: "var(--radius)",

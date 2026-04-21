@@ -41,7 +41,7 @@ export async function GET() {
   // This week stats
   let thisIncome = 0;
   let thisExpense = 0;
-  const thisCategorySums: Record<string, { name: string; icon: string | null; total: number }> = {};
+  const thisCategorySums: Record<string, { name: string; icon: string | null; color: string | null; total: number }> = {};
   let biggestExpense: { description: string; amount: number; date: string } | null = null;
 
   for (const tx of thisWeekTxs) {
@@ -52,7 +52,7 @@ export async function GET() {
       thisExpense += amt;
       const catName = tx.category?.name || "Uncategorized";
       if (!thisCategorySums[catName]) {
-        thisCategorySums[catName] = { name: catName, icon: tx.category?.icon || null, total: 0 };
+        thisCategorySums[catName] = { name: catName, icon: tx.category?.icon || null, color: tx.category?.color || null, total: 0 };
       }
       thisCategorySums[catName].total += amt;
 
@@ -106,6 +106,7 @@ export async function GET() {
     topCategory: topCategory ? {
       name: topCategory.name,
       icon: topCategory.icon,
+      color: topCategory.color,
       total: Math.round(topCategory.total * 100) / 100,
       daily: Math.round((topCategory.total / 7) * 100) / 100,
     } : null,

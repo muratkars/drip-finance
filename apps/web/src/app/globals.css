@@ -1,74 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Drip Finance editorial palette (used via var(--xyz) in inline styles) */
+    --accent: #3F4CD9;
+    --ink: #0E1116;
+    --ink-2: #3D4451;
+    --ink-3: #8A919C;
+    --bg: #FAF8F5;
+    --bg-2: #F3F0EC;
+    --card-bg: #FFFFFF;
+    --line: #E5E2DD;
+    --line-soft: #F0EDE8;
+    --green: #2F9E5C;
+    --red: #C45B7A;
+    --blue: #5B8AC4;
 
+    /* Typography */
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-num: 'JetBrains Mono', 'SF Mono', monospace;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+    /* Shadcn/Tailwind compatibility (HSL values) */
+    --background: 36 33% 97%;
+    --foreground: 216 30% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 216 30% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 216 30% 7%;
+    --primary: 235 62% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 32 17% 93%;
+    --secondary-foreground: 216 30% 7%;
+    --muted: 32 17% 93%;
+    --muted-foreground: 215 8% 57%;
+    --accent-tw: 235 62% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 346 52% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 12% 88%;
+    --input: 30 12% 88%;
+    --ring: 235 62% 55%;
+    --radius: 0.875rem;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-
-    --radius: 0.5rem;
-
-    --drip: 199 89% 48%;
-    --drip-foreground: 210 40% 98%;
+    --drip: 235 62% 55%;
+    --drip-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --accent: #6B75E8;
+    --ink: #E8E6E3;
+    --ink-2: #B0B5BC;
+    --ink-3: #6B7280;
+    --bg: #0E1116;
+    --bg-2: #171B22;
+    --card-bg: #1C2028;
+    --line: #2A2F38;
+    --line-soft: #1F242C;
+    --green: #4ADE80;
+    --red: #F29EB0;
+    --blue: #93B5E0;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --background: 216 30% 7%;
+    --foreground: 30 8% 91%;
+    --card: 220 18% 13%;
+    --card-foreground: 30 8% 91%;
+    --popover: 220 18% 13%;
+    --popover-foreground: 30 8% 91%;
+    --primary: 235 70% 66%;
+    --primary-foreground: 216 30% 7%;
+    --secondary: 218 16% 16%;
+    --secondary-foreground: 30 8% 91%;
+    --muted: 218 16% 16%;
+    --muted-foreground: 218 11% 46%;
+    --accent-tw: 235 70% 66%;
+    --accent-foreground: 216 30% 7%;
+    --destructive: 346 52% 56%;
+    --destructive-foreground: 30 8% 91%;
+    --border: 218 16% 18%;
+    --input: 218 16% 18%;
+    --ring: 235 70% 66%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-
-    --drip: 199 89% 48%;
-    --drip-foreground: 222.2 47.4% 11.2%;
+    --drip: 235 70% 66%;
+    --drip-foreground: 216 30% 7%;
   }
 }
 
@@ -77,6 +96,53 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Drip design system utilities */
+@layer components {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-num {
+    font-family: var(--font-num);
+    font-feature-settings: "ss01", "tnum";
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .drip-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .drip-card {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+
+  .page-enter {
+    animation: pageEnter 300ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  }
+
+  @keyframes pageEnter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

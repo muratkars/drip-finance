@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
-import { Plus, Target, TrendingDown, Trash2, Check, X, Edit2, Droplets } from "lucide-react";
+import { DripIcon, Drop } from "@/components/ui/drip-icons";
+import {
+  DripCard,
+  DripButton,
+  DripSelect,
+  DripLabel,
+  PerDay,
+  Money,
+  Pill,
+  Liquid,
+  fmtMoney,
+  dripInputClass,
+} from "@/components/ui/drip-primitives";
 import { toast } from "sonner";
 
 interface Goal {
@@ -28,18 +35,11 @@ interface Goal {
   progress: number;
 }
 
-const STATUS_COLORS = {
-  on_track: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  ahead: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  at_risk: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  completed: "bg-primary/10 text-primary",
-};
-
-const STATUS_LABELS = {
-  on_track: "On Track",
-  ahead: "Ahead",
-  at_risk: "At Risk",
-  completed: "Completed",
+const STATUS_MAP: Record<Goal["status"], { label: string; tone: "green" | "blue" | "red" | "accent" }> = {
+  on_track: { label: "On Track", tone: "green" },
+  ahead: { label: "Ahead", tone: "blue" },
+  at_risk: { label: "At Risk", tone: "red" },
+  completed: { label: "Completed", tone: "accent" },
 };
 
 const GOAL_COLORS = [
@@ -125,162 +125,192 @@ export default function GoalsPage() {
   const activeGoals = goals.filter((g) => !g.isCompleted);
   const completedGoals = goals.filter((g) => g.isCompleted);
   const totalDailyNeeded = activeGoals.reduce((sum, g) => sum + g.dailyNeeded, 0);
+  const remaining = avgDailySurplus - totalDailyNeeded;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div style={{ padding: "28px 32px 60px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* ── Header ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">Goals</h1>
-          <p className="text-sm text-muted-foreground">
-            Daily surplus: {formatCurrency(avgDailySurplus)}/day
-            {activeGoals.length > 0 && (
-              <span> &middot; Goals need: {formatCurrency(totalDailyNeeded)}/day</span>
-            )}
-          </p>
+          <div className="drip-eyebrow" style={{ color: "var(--ink-3)", marginBottom: 6 }}>Goals</div>
+          <h1
+            className="font-display"
+            style={{ fontSize: 30, fontWeight: 400, letterSpacing: "-0.02em", lineHeight: 1.15, color: "var(--ink)", margin: 0 }}
+          >
+            What are you <span style={{ color: "var(--ink-3)", fontStyle: "italic" }}>saving toward?</span>
+          </h1>
         </div>
-        <Button onClick={() => setShowAdd(!showAdd)} className="gap-2 self-start">
-          <Plus className="h-4 w-4" /> New Goal
-        </Button>
+        <DripButton variant="primary" icon="plus" onClick={() => setShowAdd(!showAdd)}>
+          New goal
+        </DripButton>
       </div>
 
-      {/* Daily drip context card */}
+      {/* ── Context card ── */}
       {activeGoals.length > 0 && (
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-background">
-          <CardContent className="flex flex-col items-center gap-2 py-6 sm:flex-row sm:justify-around">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(avgDailySurplus)}</p>
-              <p className="text-xs text-muted-foreground">daily surplus</p>
+        <div
+          style={{
+            background: "var(--ink)",
+            backgroundImage: "linear-gradient(135deg, var(--ink), var(--accent))",
+            borderRadius: 14,
+            padding: "28px 32px",
+            marginBottom: 28,
+            position: "relative",
+            overflow: "hidden",
+            color: "#fff",
+          }}
+        >
+          <Drop
+            size={140}
+            className="absolute"
+            filled
+          />
+          <div style={{ position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)", opacity: 0.08 }}>
+            <Drop size={140} filled />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, position: "relative", zIndex: 1 }}>
+            <div style={{ textAlign: "center" }}>
+              <PerDay amount={avgDailySurplus} size="md" color="#4ade80" />
+              <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4 }}>daily surplus</div>
             </div>
-            <Droplets className="hidden h-6 w-6 text-primary sm:block" />
-            <div className="text-center">
-              <p className="text-2xl font-bold">{formatCurrency(totalDailyNeeded)}</p>
-              <p className="text-xs text-muted-foreground">needed for goals</p>
+            <div style={{ textAlign: "center" }}>
+              <PerDay amount={totalDailyNeeded} size="md" color="#fff" />
+              <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4 }}>needed for goals</div>
             </div>
-            <Droplets className="hidden h-6 w-6 text-primary sm:block" />
-            <div className="text-center">
-              <p className={`text-2xl font-bold ${avgDailySurplus - totalDailyNeeded >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {formatCurrency(avgDailySurplus - totalDailyNeeded)}
-              </p>
-              <p className="text-xs text-muted-foreground">remaining after goals</p>
+            <div style={{ textAlign: "center" }}>
+              <PerDay amount={remaining} size="md" color={remaining >= 0 ? "#4ade80" : "#f87171"} />
+              <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4 }}>remaining after goals</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Add Goal Form */}
+      {/* ── Add Goal Form ── */}
       {showAdd && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Create Goal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Goal Name</label>
-                  <Input
-                    placeholder="e.g., Emergency Fund, Car Loan"
-                    value={newGoal.name}
-                    onChange={(e) => setNewGoal((p) => ({ ...p, name: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Type</label>
-                  <select
+        <DripCard style={{ marginBottom: 28 }} padding={24}>
+          <h2
+            className="font-display"
+            style={{ fontSize: 20, fontWeight: 400, letterSpacing: "-0.015em", color: "var(--ink)", margin: "0 0 20px" }}
+          >
+            Create a new goal
+          </h2>
+          <form onSubmit={handleAdd}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <DripLabel>Goal Name</DripLabel>
+                <input
+                  className={dripInputClass}
+                  style={{ marginTop: 6 }}
+                  placeholder="e.g., Emergency Fund, Car Loan"
+                  value={newGoal.name}
+                  onChange={(e) => setNewGoal((p) => ({ ...p, name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <DripLabel>Type</DripLabel>
+                <div style={{ marginTop: 6 }}>
+                  <DripSelect
                     value={newGoal.type}
-                    onChange={(e) => setNewGoal((p) => ({ ...p, type: e.target.value as "SAVE_UP" | "PAY_DOWN" }))}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="SAVE_UP">Save Up (build toward target)</option>
-                    <option value="PAY_DOWN">Pay Down (reduce debt to zero)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">
-                    {newGoal.type === "SAVE_UP" ? "Target Amount" : "Total Debt"}
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="10000"
-                    value={newGoal.targetAmount}
-                    onChange={(e) => setNewGoal((p) => ({ ...p, targetAmount: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">
-                    {newGoal.type === "SAVE_UP" ? "Current Savings" : "Remaining Balance"}
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={newGoal.currentAmount}
-                    onChange={(e) => setNewGoal((p) => ({ ...p, currentAmount: e.target.value }))}
-                  />
-                </div>
-                {newGoal.type === "SAVE_UP" && (
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">Target Date (optional)</label>
-                    <Input
-                      type="date"
-                      value={newGoal.targetDate}
-                      onChange={(e) => setNewGoal((p) => ({ ...p, targetDate: e.target.value }))}
-                    />
-                  </div>
-                )}
-                {newGoal.type === "PAY_DOWN" && (
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">APR % (optional)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="18.99"
-                      value={newGoal.apr}
-                      onChange={(e) => setNewGoal((p) => ({ ...p, apr: e.target.value }))}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Monthly Contribution</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="500"
-                    value={newGoal.monthlyPayment}
-                    onChange={(e) => setNewGoal((p) => ({ ...p, monthlyPayment: e.target.value }))}
+                    onChange={(v) => setNewGoal((p) => ({ ...p, type: v as "SAVE_UP" | "PAY_DOWN" }))}
+                    options={[
+                      { value: "SAVE_UP", label: "Save Up (build toward target)" },
+                      { value: "PAY_DOWN", label: "Pay Down (reduce debt to zero)" },
+                    ]}
+                    className="w-full"
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" type="button" onClick={() => setShowAdd(false)}>Cancel</Button>
-                <Button type="submit">Create Goal</Button>
+              <div>
+                <DripLabel>{newGoal.type === "SAVE_UP" ? "Target Amount" : "Total Debt"}</DripLabel>
+                <input
+                  className={dripInputClass}
+                  style={{ marginTop: 6 }}
+                  type="number"
+                  step="0.01"
+                  placeholder="10000"
+                  value={newGoal.targetAmount}
+                  onChange={(e) => setNewGoal((p) => ({ ...p, targetAmount: e.target.value }))}
+                  required
+                />
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              <div>
+                <DripLabel>{newGoal.type === "SAVE_UP" ? "Current Savings" : "Remaining Balance"}</DripLabel>
+                <input
+                  className={dripInputClass}
+                  style={{ marginTop: 6 }}
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  value={newGoal.currentAmount}
+                  onChange={(e) => setNewGoal((p) => ({ ...p, currentAmount: e.target.value }))}
+                />
+              </div>
+              {newGoal.type === "SAVE_UP" && (
+                <div>
+                  <DripLabel>Target Date (optional)</DripLabel>
+                  <input
+                    className={dripInputClass}
+                    style={{ marginTop: 6 }}
+                    type="date"
+                    value={newGoal.targetDate}
+                    onChange={(e) => setNewGoal((p) => ({ ...p, targetDate: e.target.value }))}
+                  />
+                </div>
+              )}
+              {newGoal.type === "PAY_DOWN" && (
+                <div>
+                  <DripLabel>APR % (optional)</DripLabel>
+                  <input
+                    className={dripInputClass}
+                    style={{ marginTop: 6 }}
+                    type="number"
+                    step="0.01"
+                    placeholder="18.99"
+                    value={newGoal.apr}
+                    onChange={(e) => setNewGoal((p) => ({ ...p, apr: e.target.value }))}
+                  />
+                </div>
+              )}
+              <div>
+                <DripLabel>Monthly Contribution</DripLabel>
+                <input
+                  className={dripInputClass}
+                  style={{ marginTop: 6 }}
+                  type="number"
+                  step="0.01"
+                  placeholder="500"
+                  value={newGoal.monthlyPayment}
+                  onChange={(e) => setNewGoal((p) => ({ ...p, monthlyPayment: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+              <DripButton variant="ghost" type="button" onClick={() => setShowAdd(false)}>Cancel</DripButton>
+              <DripButton variant="primary" type="submit">Create Goal</DripButton>
+            </div>
+          </form>
+        </DripCard>
       )}
 
-      {/* Active Goals */}
+      {/* ── Active Goals ── */}
       {loading ? (
-        <p className="text-muted-foreground">Loading goals...</p>
+        <p style={{ color: "var(--ink-3)", fontSize: 14 }}>Loading goals...</p>
       ) : activeGoals.length === 0 && !showAdd ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Target className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="text-lg font-medium">No goals yet</p>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Set savings or debt payoff goals to see how they fit your daily drip.
-            </p>
-            <Button onClick={() => setShowAdd(true)} className="gap-2">
-              <Plus className="h-4 w-4" /> Create Your First Goal
-            </Button>
-          </CardContent>
-        </Card>
+        <DripCard padding={48} style={{ textAlign: "center" }}>
+          <DripIcon name="target" size={48} style={{ color: "var(--ink-3)", margin: "0 auto 16px" }} />
+          <p className="font-display" style={{ fontSize: 20, fontWeight: 400, color: "var(--ink)", margin: "0 0 4px" }}>
+            No goals yet
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 20px" }}>
+            Set savings or debt payoff goals to see how they fit your daily drip.
+          </p>
+          <DripButton variant="primary" icon="plus" onClick={() => setShowAdd(true)}>
+            Create Your First Goal
+          </DripButton>
+        </DripCard>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {activeGoals.map((goal) => (
             <GoalCard
               key={goal.id}
@@ -295,11 +325,11 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {/* Completed Goals */}
+      {/* ── Completed Goals ── */}
       {completedGoals.length > 0 && (
-        <>
-          <h2 className="text-lg font-semibold text-muted-foreground">Completed</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+        <div style={{ marginTop: 36 }}>
+          <div className="drip-eyebrow" style={{ color: "var(--ink-3)", marginBottom: 14 }}>Completed</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             {completedGoals.map((goal) => (
               <GoalCard
                 key={goal.id}
@@ -312,11 +342,13 @@ export default function GoalsPage() {
               />
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
+
+/* ─── Goal Card ─── */
 
 function GoalCard({
   goal,
@@ -334,118 +366,128 @@ function GoalCard({
   onDelete: () => void;
 }) {
   const [editAmount, setEditAmount] = useState(String(goal.currentAmount));
-
   const isSaveUp = goal.type === "SAVE_UP";
   const progressPct = Math.min(100, Math.max(0, goal.progress));
+  const status = STATUS_MAP[goal.status];
+  const barColor = isSaveUp ? "var(--accent)" : "#C45B7A";
 
   return (
-    <Card className={goal.isCompleted ? "opacity-60" : ""}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            {isSaveUp ? (
-              <Target className="h-5 w-5 text-primary" />
-            ) : (
-              <TrendingDown className="h-5 w-5 text-red-500" />
-            )}
+    <DripCard padding={0} style={{ opacity: goal.isCompleted ? 0.6 : 1 }}>
+      {/* ── Top section ── */}
+      <div style={{ padding: "16px 20px 0" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: isSaveUp ? "rgba(63,76,217,0.10)" : "rgba(196,91,122,0.10)",
+                color: isSaveUp ? "var(--accent)" : "#C45B7A",
+              }}
+            >
+              <DripIcon name={isSaveUp ? "target" : "trenddown"} size={18} />
+            </div>
             <div>
-              <CardTitle className="text-base">{goal.name}</CardTitle>
-              <CardDescription>
+              <div className="font-display" style={{ fontSize: 20, fontWeight: 400, letterSpacing: "-0.015em", color: "var(--ink)", lineHeight: 1.2 }}>
+                {goal.name}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
                 {isSaveUp ? "Save Up" : "Pay Down"}
                 {goal.apr > 0 && ` · ${goal.apr}% APR`}
-              </CardDescription>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Badge className={STATUS_COLORS[goal.status]}>
-              {STATUS_LABELS[goal.status]}
-            </Badge>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}>
-              <Trash2 className="h-3 w-3 text-muted-foreground" />
-            </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Pill tone={status.tone}>{status.label}</Pill>
+            <DripButton variant="danger" size="sm" icon="trash" onClick={onDelete} style={{ border: "none", padding: 4, height: "auto", minWidth: 0 }} />
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Progress bar */}
-        <div>
-          <div className="mb-1 flex justify-between text-sm">
-            <span>{formatCurrency(isSaveUp ? goal.currentAmount : goal.targetAmount - goal.remaining)}</span>
-            <span className="text-muted-foreground">{formatCurrency(goal.targetAmount)}</span>
-          </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${progressPct}%`,
-                backgroundColor: goal.color || "#4f46e5",
-              }}
-            />
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">{progressPct}% complete</p>
+
+        {/* ── Amount display ── */}
+        <div style={{ marginBottom: 10 }}>
+          <Money amount={isSaveUp ? goal.currentAmount : goal.targetAmount - goal.remaining} size="xl" />
+          <span style={{ fontSize: 13, color: "var(--ink-3)", marginLeft: 6 }}>
+            of {fmtMoney(goal.targetAmount)}
+          </span>
         </div>
 
-        {/* Daily drip framing */}
-        {!goal.isCompleted && goal.dailyNeeded > 0 && (
-          <div className="rounded-md bg-muted/50 p-3">
-            <p className="text-sm">
-              <span className="font-semibold">{formatCurrency(goal.dailyNeeded)}/day</span>
-              <span className="text-muted-foreground">
-                {" "}needed · {formatCurrency(goal.monthlyPayment)}/month
-              </span>
-            </p>
-            {goal.remaining > 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatCurrency(goal.remaining)} remaining
-                {goal.daysLeft > 0 && ` · ~${goal.daysLeft} days`}
-                {goal.projectedDate && (
-                  <span>
-                    {" "}· target: {new Date(goal.projectedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
-        )}
+        {/* ── Liquid progress ── */}
+        <div style={{ marginBottom: 4 }}>
+          <Liquid pct={progressPct} color={barColor} height={6} />
+          <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>{progressPct}% complete</div>
+        </div>
+      </div>
 
-        {/* Update current amount */}
+      {/* ── Daily drip framing box ── */}
+      {!goal.isCompleted && goal.dailyNeeded > 0 && (
+        <div
+          style={{
+            margin: "12px 12px 0",
+            padding: "12px 14px",
+            background: "var(--bg-2)",
+            borderRadius: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Drop size={14} filled />
+            <PerDay amount={goal.dailyNeeded} size="sm" />
+            <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+              · {fmtMoney(goal.monthlyPayment)}/mo
+            </span>
+          </div>
+          {goal.remaining > 0 && (
+            <div style={{ fontSize: 11, color: "var(--ink-3)", paddingLeft: 22 }}>
+              {fmtMoney(goal.remaining)} remaining
+              {goal.daysLeft > 0 && ` · ~${goal.daysLeft} days`}
+              {goal.projectedDate && (
+                <span>
+                  {" "}· target: {new Date(goal.projectedDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Actions ── */}
+      <div style={{ padding: "12px 12px 14px", display: "flex", alignItems: "center", gap: 8 }}>
         {!goal.isCompleted && (
-          <div className="flex items-center gap-2">
+          <>
             {editing ? (
               <>
-                <Input
+                <input
+                  className={dripInputClass}
                   type="number"
                   step="0.01"
                   value={editAmount}
                   onChange={(e) => setEditAmount(e.target.value)}
-                  className="h-8 w-32 text-sm"
+                  style={{ width: 120, height: 30 }}
                 />
-                <Button size="sm" variant="ghost" onClick={() => onUpdateAmount(parseFloat(editAmount))}>
-                  <Check className="h-3 w-3" />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={onEditToggle}>
-                  <X className="h-3 w-3" />
-                </Button>
+                <DripButton variant="ghost" size="sm" icon="check" onClick={() => onUpdateAmount(parseFloat(editAmount))} />
+                <DripButton variant="ghost" size="sm" icon="x" onClick={onEditToggle} />
               </>
             ) : (
               <>
-                <Button size="sm" variant="outline" onClick={onEditToggle} className="gap-1">
-                  <Edit2 className="h-3 w-3" /> Update {isSaveUp ? "Savings" : "Balance"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={onToggleComplete} className="gap-1 text-green-600">
-                  <Check className="h-3 w-3" /> Mark Complete
-                </Button>
+                <DripButton variant="outline" size="sm" onClick={onEditToggle}>
+                  Update {isSaveUp ? "savings" : "balance"}
+                </DripButton>
+                <DripButton variant="ghost" size="sm" icon="check" onClick={onToggleComplete} style={{ color: "var(--accent)" }}>
+                  Mark complete
+                </DripButton>
               </>
             )}
-          </div>
+          </>
         )}
-
         {goal.isCompleted && (
-          <Button size="sm" variant="ghost" onClick={onToggleComplete} className="gap-1">
+          <DripButton variant="ghost" size="sm" onClick={onToggleComplete}>
             Reopen
-          </Button>
+          </DripButton>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </DripCard>
   );
 }

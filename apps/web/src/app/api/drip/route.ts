@@ -70,15 +70,18 @@ export async function GET(req: NextRequest) {
         dailyData[key].expense += dailyAmt;
       }
 
-      if (!dailyData[key].categories[categoryName]) {
-        dailyData[key].categories[categoryName] = {
-          name: categoryName,
-          icon: categoryIcon,
-          color: categoryColor,
-          amount: 0,
-        };
+      // Only track expense categories for the "where it drips" breakdown
+      if (tx.type === "EXPENSE") {
+        if (!dailyData[key].categories[categoryName]) {
+          dailyData[key].categories[categoryName] = {
+            name: categoryName,
+            icon: categoryIcon,
+            color: categoryColor,
+            amount: 0,
+          };
+        }
+        dailyData[key].categories[categoryName].amount += dailyAmt;
       }
-      dailyData[key].categories[categoryName].amount += dailyAmt;
     }
   }
 

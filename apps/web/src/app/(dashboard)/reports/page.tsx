@@ -4,10 +4,18 @@ import { useEffect, useState } from "react";
 import { SpendingChart } from "@/components/reports/spending-chart";
 import { NetWorthChart } from "@/components/reports/networth-chart";
 import { SankeyChart } from "@/components/reports/sankey-chart";
+import { DripSelect } from "@/components/ui/drip-primitives";
 
 type Tab = "spending" | "income" | "cashflow" | "networth";
 type GroupBy = "category" | "merchant";
 type Period = "month" | "quarter" | "year";
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "spending", label: "Spending" },
+  { key: "income", label: "Income" },
+  { key: "cashflow", label: "Cash Flow" },
+  { key: "networth", label: "Net Worth" },
+];
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>("spending");
@@ -41,7 +49,6 @@ export default function ReportsPage() {
 
   async function fetchSankey() {
     setLoading(true);
-    // Fetch both income and spending data
     const [incRes, expRes] = await Promise.all([
       fetch(`/api/reports?tab=income&groupBy=category&period=${period}&months=${months}`),
       fetch(`/api/reports?tab=spending&groupBy=category&period=${period}&months=${months}`),
@@ -71,76 +78,81 @@ export default function ReportsPage() {
     setLoading(false);
   }
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: "spending", label: "Spending" },
-    { key: "income", label: "Income" },
-    { key: "cashflow", label: "Cash Flow" },
-    { key: "networth", label: "Net Worth" },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold sm:text-2xl">Reports</h1>
-        <p className="text-sm text-muted-foreground">Analyze your financial data</p>
+    <div style={{ padding: "28px 32px 60px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* Header */}
+      <div className="mb-6">
+        <div className="drip-eyebrow mb-2" style={{ color: "var(--ink-3)" }}>Reports</div>
+        <h1
+          className="font-display m-0"
+          style={{ fontSize: 40, fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.05 }}
+        >
+          Zoom out. <span style={{ color: "var(--ink-3)", fontStyle: "italic" }}>See patterns.</span>
+        </h1>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex overflow-x-auto rounded-lg border bg-card">
-          {TABS.map((t, i) => (
+      {/* Tabs + filters */}
+      <div className="flex justify-between items-center mb-5 flex-wrap gap-2.5">
+        <div
+          className="flex gap-1 rounded-[10px] p-1"
+          style={{ background: "var(--bg-2)", border: "1px solid var(--line)" }}
+        >
+          {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors ${
-                tab === t.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              } ${i === 0 ? "rounded-l-lg" : ""} ${i === TABS.length - 1 ? "rounded-r-lg" : ""}`}
+              className="px-3.5 py-[7px] rounded-[7px] text-[12.5px] font-medium cursor-pointer transition-colors"
+              style={{
+                background: tab === t.key ? "var(--ink)" : "transparent",
+                color: tab === t.key ? "var(--bg)" : "var(--ink-3)",
+                border: "none",
+                fontFamily: "inherit",
+              }}
             >
               {t.label}
             </button>
           ))}
         </div>
-
-        <div className="flex flex-wrap gap-3">
+        <div className="flex gap-2">
           {(tab === "spending" || tab === "income") && (
-            <select
+            <DripSelect
               value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-            >
-              <option value="category">By Category</option>
-              <option value="merchant">By Merchant</option>
-            </select>
+              onChange={(v) => setGroupBy(v as GroupBy)}
+              options={[
+                { value: "category", label: "Group: Category" },
+                { value: "merchant", label: "Group: Merchant" },
+              ]}
+            />
           )}
           {tab !== "cashflow" && (
-            <select
+            <DripSelect
               value={period}
-              onChange={(e) => setPeriod(e.target.value as Period)}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-            >
-              <option value="month">Monthly</option>
-              <option value="quarter">Quarterly</option>
-              <option value="year">Yearly</option>
-            </select>
+              onChange={(v) => setPeriod(v as Period)}
+              options={[
+                { value: "month", label: "Monthly" },
+                { value: "quarter", label: "Quarterly" },
+                { value: "year", label: "Yearly" },
+              ]}
+            />
           )}
-          <select
-            value={months}
-            onChange={(e) => setMonths(Number(e.target.value))}
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-          >
-            <option value={3}>Last 3 months</option>
-            <option value={6}>Last 6 months</option>
-            <option value={12}>Last 12 months</option>
-            <option value={24}>Last 2 years</option>
-          </select>
+          <DripSelect
+            value={String(months)}
+            onChange={(v) => setMonths(Number(v))}
+            options={[
+              { value: "3", label: "Last 3 mo" },
+              { value: "6", label: "Last 6 mo" },
+              { value: "12", label: "Last 12 mo" },
+              { value: "24", label: "Last 24 mo" },
+            ]}
+          />
         </div>
       </div>
 
       {/* Content */}
       {loading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading reports...</div>
+        <div className="py-12 text-center text-sm" style={{ color: "var(--ink-3)" }}>
+          Loading reports...
+        </div>
       ) : tab === "cashflow" ? (
         <SankeyChart data={sankeyData || { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 }} />
       ) : tab === "networth" ? (

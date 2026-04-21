@@ -102,7 +102,7 @@ If you can't determine a field, use null. For items, extract as many as you can 
       throw new Error(`Claude API error: ${response.status} ${err}`);
     }
 
-    const result = await response.json();
+    const result: any = await response.json();
     const text = result.content?.[0]?.text || "";
 
     try {

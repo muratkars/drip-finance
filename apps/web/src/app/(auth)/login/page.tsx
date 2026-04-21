@@ -4,9 +4,8 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Drop } from "@/components/ui/drip-icons";
+import { DripCard, DripButton, DripLabel, dripInputClass } from "@/components/ui/drip-primitives";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,59 +35,84 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">
-            <span className="text-primary">Drip</span> Finance
-          </CardTitle>
-          <CardDescription>Sign in to see your daily drip</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
-            )}
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+    <div
+      className="min-h-screen flex items-center justify-center p-8 relative overflow-hidden"
+      style={{ background: "var(--bg-2)" }}
+    >
+      {/* Decorative drops */}
+      <div className="absolute -top-20 -right-20 opacity-[0.08]" style={{ color: "var(--accent)" }}>
+        <Drop size={400} />
+      </div>
+      <div className="absolute -bottom-[120px] -left-10 opacity-[0.05]" style={{ color: "var(--accent)" }}>
+        <Drop size={280} />
+      </div>
+
+      <DripCard className="w-full max-w-[400px] z-10" padding={36} style={{ boxShadow: "0 10px 40px rgba(14,17,22,0.06)" }}>
+        <div className="text-center mb-7">
+          <div className="inline-flex items-center gap-3 mb-2.5">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center text-white"
+              style={{ background: "var(--accent)" }}
+            >
+              <Drop size={22} />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="font-display text-[32px]" style={{ fontWeight: 400, letterSpacing: "-0.025em" }}>
+              <span style={{ color: "var(--accent)" }}>Drip</span> Finance
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </p>
-          </CardFooter>
+          </div>
+          <div className="text-[13px] italic mt-1.5" style={{ color: "var(--ink-3)" }}>
+            Welcome back. Let&apos;s see today&apos;s drip.
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+          {error && (
+            <div
+              className="rounded-lg p-3 text-sm"
+              style={{ background: "rgba(196,91,122,0.1)", color: "#9a3858" }}
+            >
+              {error}
+            </div>
+          )}
+          <div>
+            <DripLabel>Email</DripLabel>
+            <input
+              type="email"
+              placeholder="you@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={dripInputClass + " mt-1.5 h-10"}
+              required
+            />
+          </div>
+          <div>
+            <DripLabel>Password</DripLabel>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={dripInputClass + " mt-1.5 h-10"}
+              required
+            />
+          </div>
+          <DripButton
+            variant="accent"
+            size="lg"
+            type="submit"
+            disabled={loading}
+            className="w-full mt-1.5"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </DripButton>
+          <div className="text-center text-[12.5px] mt-2" style={{ color: "var(--ink-3)" }}>
+            New here?{" "}
+            <Link href="/register" className="font-medium" style={{ color: "var(--accent)", textDecoration: "none" }}>
+              Create an account
+            </Link>
+          </div>
         </form>
-      </Card>
+      </DripCard>
     </div>
   );
 }

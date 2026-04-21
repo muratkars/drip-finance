@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
-import { Calendar, List, Check, X, Sparkles, Receipt, CreditCard, Wallet } from "lucide-react";
+import { DripIcon } from "@/components/ui/drip-icons";
+import {
+  DripCard,
+  DripButton,
+  PerDay,
+  Money,
+  Pill,
+  SectionHead,
+  Liquid,
+  fmtDaily,
+  fmtMoney,
+} from "@/components/ui/drip-primitives";
 
 interface ConfirmedRecurring {
   id: string;
@@ -47,28 +54,41 @@ interface Totals {
 type ViewMode = "list" | "calendar";
 type FilterType = "all" | "BILL" | "SUBSCRIPTION" | "INCOME";
 
-const TYPE_ICONS = {
-  BILL: CreditCard,
-  SUBSCRIPTION: Receipt,
-  INCOME: Wallet,
+const KIND_ICON: Record<string, string> = {
+  BILL: "card",
+  SUBSCRIPTION: "receipt",
+  INCOME: "wallet",
 };
 
-const TYPE_LABELS = {
+const KIND_LABEL: Record<string, string> = {
   BILL: "Bill",
   SUBSCRIPTION: "Subscription",
   INCOME: "Income",
 };
 
-const TYPE_COLORS = {
-  BILL: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  SUBSCRIPTION: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  INCOME: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+const KIND_TONE: Record<string, "amber" | "purple" | "green"> = {
+  BILL: "amber",
+  SUBSCRIPTION: "purple",
+  INCOME: "green",
+};
+
+const KIND_COLOR: Record<string, string> = {
+  BILL: "#D97A3C",
+  SUBSCRIPTION: "#A85BC4",
+  INCOME: "#2F9E5C",
 };
 
 export default function RecurringPage() {
   const [confirmed, setConfirmed] = useState<ConfirmedRecurring[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestedRecurring[]>([]);
-  const [totals, setTotals] = useState<Totals>({ billsMonthly: 0, billsDaily: 0, subscriptionsMonthly: 0, subscriptionsDaily: 0, incomeMonthly: 0, incomeDaily: 0 });
+  const [totals, setTotals] = useState<Totals>({
+    billsMonthly: 0,
+    billsDaily: 0,
+    subscriptionsMonthly: 0,
+    subscriptionsDaily: 0,
+    incomeMonthly: 0,
+    incomeDaily: 0,
+  });
   const [view, setView] = useState<ViewMode>("list");
   const [filter, setFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
@@ -104,9 +124,10 @@ export default function RecurringPage() {
     setSuggestions((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const filteredConfirmed = filter === "all"
-    ? confirmed
-    : confirmed.filter((c) => c.recurringType === filter);
+  const filteredConfirmed =
+    filter === "all"
+      ? confirmed
+      : confirmed.filter((c) => c.recurringType === filter);
 
   // Calendar data
   const now = new Date();
@@ -115,7 +136,10 @@ export default function RecurringPage() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay();
 
-  const calendarItems: Record<number, { description: string; amount: number; type: string; recurringType: string; icon: string | null }[]> = {};
+  const calendarItems: Record<
+    number,
+    { description: string; amount: number; type: string; recurringType: string; icon: string | null }[]
+  > = {};
 
   for (const item of confirmed) {
     const txDate = new Date(item.date);
@@ -134,240 +158,483 @@ export default function RecurringPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-xl font-bold sm:text-2xl">Recurring</h1>
-        <p className="text-muted-foreground">Analyzing transactions...</p>
+      <div style={{ padding: "28px 32px 60px", maxWidth: 1280, margin: "0 auto" }}>
+        <div className="drip-eyebrow" style={{ color: "var(--ink-3)", marginBottom: 6 }}>
+          Recurring
+        </div>
+        <h1
+          className="font-display"
+          style={{ fontSize: 32, fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.15, color: "var(--ink)", margin: 0 }}
+        >
+          The rhythm of <span style={{ color: "var(--ink-3)", fontStyle: "italic" }}>your money.</span>
+        </h1>
+        <p style={{ color: "var(--ink-3)", fontSize: 14, marginTop: 16 }}>Analyzing transactions...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div style={{ padding: "28px 32px 60px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* ── Page header ── */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 28 }}>
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">Recurring</h1>
-          <p className="text-sm text-muted-foreground">
-            {confirmed.length} recurring items
+          <div className="drip-eyebrow" style={{ color: "var(--ink-3)", marginBottom: 6 }}>
+            Recurring
+          </div>
+          <h1
+            className="font-display"
+            style={{ fontSize: 32, fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.15, color: "var(--ink)", margin: 0 }}
+          >
+            The rhythm of{" "}
+            <span style={{ color: "var(--ink-3)", fontStyle: "italic" }}>your money.</span>
+          </h1>
+        </div>
+
+        {/* View toggle */}
+        <div
+          style={{
+            display: "flex",
+            borderRadius: 10,
+            overflow: "hidden",
+            background: "var(--bg-2)",
+          }}
+        >
+          {(["list", "calendar"] as ViewMode[]).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                fontSize: 13,
+                fontWeight: 500,
+                fontFamily: "inherit",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 150ms",
+                background: view === v ? "var(--card-bg)" : "transparent",
+                color: view === v ? "var(--ink)" : "var(--ink-3)",
+                boxShadow: view === v ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                borderRadius: 8,
+              }}
+            >
+              <DripIcon name={v === "list" ? "receipt" : "calendar"} size={14} />
+              {v === "list" ? "List" : "Calendar"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Summary cards ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+        {/* Bills */}
+        <DripCard>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(217,122,60,0.12)",
+                color: "#D97A3C",
+              }}
+            >
+              <DripIcon name="card" size={16} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-2)" }}>Bills</span>
+          </div>
+          <PerDay amount={totals.billsDaily} size="md" />
+          <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
+            {fmtMoney(totals.billsMonthly)}/month
           </p>
-        </div>
-        <div className="flex self-start rounded-md border">
-          <Button
-            variant={view === "list" ? "default" : "ghost"}
-            size="sm"
-            className="gap-1 rounded-r-none"
-            onClick={() => setView("list")}
-          >
-            <List className="h-4 w-4" /> List
-          </Button>
-          <Button
-            variant={view === "calendar" ? "default" : "ghost"}
-            size="sm"
-            className="gap-1 rounded-l-none"
-            onClick={() => setView("calendar")}
-          >
-            <Calendar className="h-4 w-4" /> Calendar
-          </Button>
-        </div>
+        </DripCard>
+
+        {/* Subscriptions */}
+        <DripCard>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(168,91,196,0.12)",
+                color: "#A85BC4",
+              }}
+            >
+              <DripIcon name="receipt" size={16} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-2)" }}>Subscriptions</span>
+          </div>
+          <PerDay amount={totals.subscriptionsDaily} size="md" />
+          <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
+            {fmtMoney(totals.subscriptionsMonthly)}/month
+          </p>
+        </DripCard>
+
+        {/* Recurring Income */}
+        <DripCard>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(47,158,92,0.12)",
+                color: "#2F9E5C",
+              }}
+            >
+              <DripIcon name="wallet" size={16} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-2)" }}>Recurring Income</span>
+          </div>
+          <PerDay amount={totals.incomeDaily} size="md" color="#2F9E5C" />
+          <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
+            {fmtMoney(totals.incomeMonthly)}/month
+          </p>
+        </DripCard>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CreditCard className="h-4 w-4" /> Bills
-            </div>
-            <p className="mt-1 text-2xl font-bold">{formatCurrency(totals.billsDaily)}<span className="text-sm font-normal text-muted-foreground">/day</span></p>
-            <p className="text-xs text-muted-foreground">{formatCurrency(totals.billsMonthly)}/month · essential</p>
-          </CardContent>
-        </Card>
-        <Card className="border-purple-200 dark:border-purple-800/30">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Receipt className="h-4 w-4" /> Subscriptions
-            </div>
-            <p className="mt-1 text-2xl font-bold">{formatCurrency(totals.subscriptionsDaily)}<span className="text-sm font-normal text-muted-foreground">/day</span></p>
-            <p className="text-xs text-muted-foreground">{formatCurrency(totals.subscriptionsMonthly)}/month · optimizable</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Wallet className="h-4 w-4" /> Recurring Income
-            </div>
-            <p className="mt-1 text-2xl font-bold text-green-600">{formatCurrency(totals.incomeDaily)}<span className="text-sm font-normal text-muted-foreground">/day</span></p>
-            <p className="text-xs text-muted-foreground">{formatCurrency(totals.incomeMonthly)}/month</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Suggestions */}
+      {/* ── Detected recurring suggestions ── */}
       {suggestions.length > 0 && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Detected Recurring ({suggestions.length})
-            </CardTitle>
-            <CardDescription>
-              We found patterns in your transactions. Confirm or dismiss.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {suggestions.map((s, i) => {
-                const TypeIcon = TYPE_ICONS[s.recurringType as keyof typeof TYPE_ICONS] || CreditCard;
+        <DripCard
+          style={{
+            marginBottom: 24,
+            background: "linear-gradient(135deg, color-mix(in oklch, var(--accent) 8%, var(--card-bg)), color-mix(in oklch, var(--accent) 3%, var(--card-bg)))",
+            border: "1px solid color-mix(in oklch, var(--accent) 18%, var(--line))",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(63,76,217,0.12)",
+                color: "var(--accent)",
+              }}
+            >
+              <DripIcon name="spark" size={16} />
+            </div>
+            <div>
+              <span style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>
+                Detected Recurring ({suggestions.length})
+              </span>
+              <p style={{ fontSize: 12, color: "var(--ink-3)", margin: 0 }}>
+                We found patterns in your transactions. Confirm or dismiss.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {suggestions.map((s, i) => {
+              const tone = KIND_TONE[s.recurringType] || "amber";
+              const icon = KIND_ICON[s.recurringType] || "card";
+              const label = KIND_LABEL[s.recurringType] || "Bill";
+              return (
+                <div
+                  key={`${s.description}-${i}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--line)",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                        {s.description}
+                      </span>
+                      <Pill tone={tone}>
+                        <DripIcon name={icon} size={10} />
+                        {label}
+                      </Pill>
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "4px 0 0" }}>
+                      {s.frequencyLabel} &middot; ~{fmtMoney(s.avgAmount)} &middot;{" "}
+                      {s.transactionCount} occurrences &middot; {Math.round(s.confidence * 100)}%
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <DripButton
+                      variant="outline"
+                      size="sm"
+                      icon="check"
+                      onClick={() => confirmSuggestion(s)}
+                      style={{ color: "#2F9E5C", borderColor: "rgba(47,158,92,0.3)" }}
+                    >
+                      Confirm
+                    </DripButton>
+                    <DripButton variant="ghost" size="sm" onClick={() => dismissSuggestion(i)}>
+                      <DripIcon name="x" size={14} />
+                    </DripButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DripCard>
+      )}
+
+      {/* ── Filter tabs ── */}
+      <div
+        style={{
+          display: "inline-flex",
+          borderRadius: 10,
+          padding: 3,
+          background: "var(--bg-2)",
+          marginBottom: 20,
+        }}
+      >
+        {(["all", "BILL", "SUBSCRIPTION", "INCOME"] as FilterType[]).map((f) => {
+          const isActive = filter === f;
+          const count =
+            f === "all"
+              ? confirmed.length
+              : confirmed.filter((c) => c.recurringType === f).length;
+          const label = f === "all" ? "All" : `${KIND_LABEL[f]}s`;
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                padding: "7px 16px",
+                fontSize: 13,
+                fontWeight: 500,
+                fontFamily: "inherit",
+                border: "none",
+                cursor: "pointer",
+                borderRadius: 8,
+                whiteSpace: "nowrap",
+                transition: "all 150ms",
+                background: isActive ? "var(--card-bg)" : "transparent",
+                color: isActive ? "var(--ink)" : "var(--ink-3)",
+                boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              }}
+            >
+              {label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── List View ── */}
+      {view === "list" && (
+        <DripCard padding={0}>
+          {filteredConfirmed.length === 0 ? (
+            <p style={{ padding: 24, fontSize: 13, color: "var(--ink-3)" }}>
+              No{" "}
+              {filter === "all"
+                ? "recurring items"
+                : `${KIND_LABEL[filter]?.toLowerCase()}s`}{" "}
+              yet.
+            </p>
+          ) : (
+            <div>
+              {filteredConfirmed.map((item, idx) => {
+                const tone = KIND_TONE[item.recurringType] || "amber";
+                const label = KIND_LABEL[item.recurringType] || "Bill";
+                const iconName = item.categoryIcon || KIND_ICON[item.recurringType] || "card";
+                const kindColor = KIND_COLOR[item.recurringType] || "#D97A3C";
+                const isIncome = item.type === "INCOME";
                 return (
                   <div
-                    key={`${s.description}-${i}`}
-                    className="flex flex-col gap-2 rounded-lg border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
+                    key={item.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "14px 20px",
+                      borderBottom:
+                        idx < filteredConfirmed.length - 1
+                          ? "1px solid var(--line-soft)"
+                          : "none",
+                    }}
                   >
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium">{s.description}</p>
-                        <Badge className={TYPE_COLORS[s.recurringType as keyof typeof TYPE_COLORS] || TYPE_COLORS.BILL}>
-                          <TypeIcon className="mr-1 h-3 w-3" />
-                          {TYPE_LABELS[s.recurringType as keyof typeof TYPE_LABELS] || "Bill"}
-                        </Badge>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: `color-mix(in oklch, ${kindColor} 12%, transparent)`,
+                          color: kindColor,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <DripIcon name={iconName} size={15} />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {s.frequencyLabel} · ~{formatCurrency(s.avgAmount)} ·{" "}
-                        {s.transactionCount} occurrences · {Math.round(s.confidence * 100)}%
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: "var(--ink)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {item.description}
+                          </span>
+                          <Pill tone={tone}>{label}</Pill>
+                        </div>
+                        <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>
+                          {item.categoryName || "Uncategorized"} &middot;{" "}
+                          {item.recurringPeriod?.toLowerCase().replace("_", " ") || "monthly"}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 16 }}>
+                      <Money
+                        amount={item.amount}
+                        size="md"
+                        color={isIncome ? "#2F9E5C" : undefined}
+                        signed={isIncome}
+                      />
+                      <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>
+                        {fmtDaily(item.amount / 30)}
                       </p>
                     </div>
-                    <div className="flex gap-2 self-end sm:self-auto">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1 text-green-600 hover:bg-green-50 hover:text-green-700"
-                        onClick={() => confirmSuggestion(s)}
-                      >
-                        <Check className="h-3 w-3" /> Confirm
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => dismissSuggestion(i)}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
                   </div>
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </DripCard>
       )}
 
-      {/* Filter tabs */}
-      <div className="flex overflow-x-auto rounded-lg border bg-card">
-        {(["all", "BILL", "SUBSCRIPTION", "INCOME"] as FilterType[]).map((f, i) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors ${
-              filter === f
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            } ${i === 0 ? "rounded-l-lg" : ""} ${i === 3 ? "rounded-r-lg" : ""}`}
-          >
-            {f === "all" ? `All (${confirmed.length})` : `${TYPE_LABELS[f as keyof typeof TYPE_LABELS]}s (${confirmed.filter((c) => c.recurringType === f).length})`}
-          </button>
-        ))}
-      </div>
-
-      {/* List View */}
-      {view === "list" && (
-        <Card>
-          <CardContent className="p-0">
-            {filteredConfirmed.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground">
-                No {filter === "all" ? "recurring items" : `${TYPE_LABELS[filter as keyof typeof TYPE_LABELS]?.toLowerCase()}s`} yet.
-              </p>
-            ) : (
-              <div className="divide-y">
-                {filteredConfirmed.map((item) => {
-                  const TypeIcon = TYPE_ICONS[item.recurringType as keyof typeof TYPE_ICONS] || CreditCard;
-                  return (
-                    <div key={item.id} className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{item.categoryIcon || "?"}</span>
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-medium">{item.description}</p>
-                            <Badge className={`text-[10px] ${TYPE_COLORS[item.recurringType as keyof typeof TYPE_COLORS] || TYPE_COLORS.BILL}`}>
-                              {TYPE_LABELS[item.recurringType as keyof typeof TYPE_LABELS] || "Bill"}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {item.categoryName} · {item.recurringPeriod?.toLowerCase().replace("_", " ")}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`text-sm font-semibold ${item.type === "INCOME" ? "text-green-600" : ""}`}>
-                        {item.type === "INCOME" ? "+" : "-"}{formatCurrency(item.amount)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Calendar View */}
+      {/* ── Calendar View ── */}
       {view === "calendar" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
+        <DripCard>
+          <div style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
               {now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-px">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className="p-2 text-center text-xs font-medium text-muted-foreground">
-                  {d}
-                </div>
-              ))}
-              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="min-h-[80px] rounded bg-muted/20 p-1" />
-              ))}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const items = calendarItems[day] || [];
-                const isToday = day === now.getDate();
+            </span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div
+                key={d}
+                style={{
+                  padding: "6px 0",
+                  textAlign: "center",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "var(--ink-3)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {d}
+              </div>
+            ))}
+            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+              <div
+                key={`empty-${i}`}
+                style={{
+                  minHeight: 80,
+                  borderRadius: 8,
+                  background: "var(--bg-2)",
+                  opacity: 0.4,
+                  padding: 4,
+                }}
+              />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const items = calendarItems[day] || [];
+              const isToday = day === now.getDate();
 
-                return (
-                  <div
-                    key={day}
-                    className={`min-h-[80px] rounded border p-1 ${
-                      isToday ? "border-primary bg-primary/5" : "border-transparent bg-muted/20"
-                    }`}
+              return (
+                <div
+                  key={day}
+                  style={{
+                    minHeight: 80,
+                    borderRadius: 8,
+                    padding: 6,
+                    background: isToday
+                      ? "color-mix(in oklch, var(--accent) 5%, var(--card-bg))"
+                      : "var(--bg-2)",
+                    border: isToday
+                      ? "1.5px solid var(--accent)"
+                      : "1.5px solid transparent",
+                    transition: "all 150ms",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: isToday ? 700 : 500,
+                      color: isToday ? "var(--accent)" : "var(--ink-3)",
+                    }}
                   >
-                    <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                      {day}
-                    </span>
-                    <div className="mt-1 space-y-0.5">
-                      {items.map((item, j) => (
+                    {day}
+                  </span>
+                  <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 3 }}>
+                    {items.map((item, j) => {
+                      const dotColor = KIND_COLOR[item.recurringType] || "#D97A3C";
+                      return (
                         <div
                           key={j}
-                          className={`truncate rounded px-1 py-0.5 text-[10px] ${
-                            item.recurringType === "SUBSCRIPTION"
-                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                              : item.type === "INCOME"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                          }`}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 10,
+                            color: "var(--ink-2)",
+                          }}
+                          title={`${item.description}: ${fmtMoney(item.amount)}`}
                         >
-                          {formatCurrency(item.amount)}
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: dotColor,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span
+                            style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {fmtMoney(item.amount)}
+                          </span>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              );
+            })}
+          </div>
+        </DripCard>
       )}
     </div>
   );

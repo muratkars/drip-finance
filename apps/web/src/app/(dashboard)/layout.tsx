@@ -13,7 +13,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar user={session.user} />
-      <main className="flex-1 overflow-auto bg-muted/30 p-4 lg:p-8">{children}</main>
+      <main
+        className="flex-1 overflow-auto page-enter"
+        style={{ background: "var(--bg)" }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

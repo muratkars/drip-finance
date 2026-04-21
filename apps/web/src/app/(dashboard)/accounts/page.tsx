@@ -2,16 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import { DripIcon, Drop } from "@/components/ui/drip-icons";
 import {
-  Plus, Trash2, Edit2, Check, X, Wallet, CreditCard,
-  PiggyBank, TrendingUp, Banknote, Landmark,
-} from "lucide-react";
+  DripCard,
+  DripButton,
+  DripSelect,
+  DripLabel,
+  Money,
+  SectionHead,
+  Pill,
+  fmtMoney,
+  dripInputClass,
+} from "@/components/ui/drip-primitives";
 
 interface FinancialAccount {
   id: string;
@@ -31,19 +34,33 @@ interface Summary {
   netWorth: number;
 }
 
-const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
-  CHECKING: { label: "Checking", icon: Landmark, color: "#3b82f6" },
-  SAVINGS: { label: "Savings", icon: PiggyBank, color: "#22c55e" },
-  CREDIT_CARD: { label: "Credit Card", icon: CreditCard, color: "#ef4444" },
-  INVESTMENT: { label: "Investment", icon: TrendingUp, color: "#8b5cf6" },
-  CASH: { label: "Cash", icon: Banknote, color: "#f59e0b" },
-  LOAN: { label: "Loan", icon: Wallet, color: "#dc2626" },
+const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  CHECKING:    { label: "Checking",    icon: "building",  color: "#4F5BD5" },
+  SAVINGS:     { label: "Savings",     icon: "piggy",     color: "#2F9E5C" },
+  INVESTMENT:  { label: "Investment",  icon: "trendup",   color: "#A85BC4" },
+  CASH:        { label: "Cash",        icon: "banknote",  color: "#C49E5B" },
+  CREDIT_CARD: { label: "Credit Card", icon: "card",      color: "#C45B7A" },
+  LOAN:        { label: "Loan",        icon: "wallet",    color: "#7A6BCB" },
 };
 
 const ACCOUNT_COLORS = [
-  "#3b82f6", "#22c55e", "#ef4444", "#8b5cf6", "#f59e0b",
-  "#ec4899", "#0891b2", "#f97316",
+  "#4F5BD5", "#2F9E5C", "#A85BC4", "#C49E5B", "#C45B7A",
+  "#7A6BCB", "#0891b2", "#f97316",
 ];
+
+const PILL_TONE_MAP: Record<string, "blue" | "green" | "purple" | "amber" | "red" | "accent"> = {
+  CHECKING:    "blue",
+  SAVINGS:     "green",
+  INVESTMENT:  "purple",
+  CASH:        "amber",
+  CREDIT_CARD: "red",
+  LOAN:        "accent",
+};
+
+function wordCount(n: number): string {
+  const w = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+  return n <= 12 ? w[n] : String(n);
+}
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
@@ -118,87 +135,140 @@ export default function AccountsPage() {
   const liabilities = accounts.filter((a) => !a.isAsset && a.isActive);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div style={{ padding: "28px 32px 60px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* ── Page header ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32 }}>
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">Accounts</h1>
-          <p className="text-sm text-muted-foreground">{accounts.length} accounts linked</p>
+          <div
+            className="drip-eyebrow"
+            style={{ color: "var(--ink-3)", marginBottom: 6 }}
+          >
+            Accounts
+          </div>
+          <h1
+            className="font-display"
+            style={{ fontSize: 40, fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.1, color: "var(--ink)", margin: 0 }}
+          >
+            {wordCount(accounts.length)} account{accounts.length !== 1 ? "s" : ""},{" "}
+            <span className="italic" style={{ color: "var(--ink-3)" }}>one number.</span>
+          </h1>
         </div>
-        <Button onClick={() => setShowAdd(!showAdd)} className="gap-2 self-start">
-          <Plus className="h-4 w-4" /> Add Account
-        </Button>
+        <DripButton icon="plus" onClick={() => setShowAdd(!showAdd)}>
+          Add Account
+        </DripButton>
       </div>
 
-      {/* Net Worth Summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Assets</p>
-            <p className="mt-1 text-2xl font-bold text-green-600">{formatCurrency(summary.totalAssets)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Liabilities</p>
-            <p className="mt-1 text-2xl font-bold text-red-600">{formatCurrency(summary.totalLiabilities)}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/20">
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Net Worth</p>
-            <p className={`mt-1 text-2xl font-bold ${summary.netWorth >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {formatCurrency(summary.netWorth)}
-            </p>
-          </CardContent>
-        </Card>
+      {/* ── Net Worth Summary ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 40 }}>
+        {/* Total Assets */}
+        <DripCard padding={24}>
+          <DripLabel>Total Assets</DripLabel>
+          <div style={{ marginTop: 8 }}>
+            <Money amount={summary.totalAssets} size="xl" color="#2F9E5C" />
+          </div>
+        </DripCard>
+
+        {/* Total Liabilities */}
+        <DripCard padding={24}>
+          <DripLabel>Total Liabilities</DripLabel>
+          <div style={{ marginTop: 8 }}>
+            <Money amount={summary.totalLiabilities} size="xl" color="#C45B7A" />
+          </div>
+        </DripCard>
+
+        {/* Net Worth */}
+        <DripCard
+          padding={24}
+          style={{
+            borderColor: "var(--accent)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ position: "absolute", top: -16, right: -16, opacity: 0.08, color: "var(--accent)" }}>
+            <Drop size={120} filled />
+          </div>
+          <div style={{ position: "relative" }}>
+            <DripLabel>Net Worth</DripLabel>
+            <div style={{ marginTop: 8 }}>
+              <Money
+                amount={summary.netWorth}
+                size="xl"
+                color={summary.netWorth >= 0 ? "var(--ink)" : "#C45B7A"}
+              />
+            </div>
+          </div>
+        </DripCard>
       </div>
 
-      {/* Add Account Form */}
+      {/* ── Add Account Form ── */}
       {showAdd && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Add Account</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <Input
+        <DripCard padding={24} style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h3
+              className="font-display"
+              style={{ fontSize: 20, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--ink)", margin: 0 }}
+            >
+              New Account
+            </h3>
+          </div>
+          <form onSubmit={handleAdd} style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, alignItems: "end" }}>
+            <div>
+              <DripLabel>Name</DripLabel>
+              <input
+                className={dripInputClass}
                 placeholder="Account name"
                 value={newAccount.name}
                 onChange={(e) => setNewAccount((p) => ({ ...p, name: e.target.value }))}
                 required
+                style={{ marginTop: 6 }}
               />
-              <select
-                value={newAccount.type}
-                onChange={(e) => setNewAccount((p) => ({ ...p, type: e.target.value }))}
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-              >
-                {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
-                  <option key={key} value={key}>{cfg.label}</option>
-                ))}
-              </select>
-              <Input
+            </div>
+            <div>
+              <DripLabel>Type</DripLabel>
+              <div style={{ marginTop: 6 }}>
+                <DripSelect
+                  value={newAccount.type}
+                  onChange={(v) => setNewAccount((p) => ({ ...p, type: v }))}
+                  options={Object.entries(TYPE_CONFIG).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            <div>
+              <DripLabel>Balance</DripLabel>
+              <input
+                className={dripInputClass}
                 type="number"
                 step="0.01"
-                placeholder="Current balance"
+                placeholder="0.00"
                 value={newAccount.balance}
                 onChange={(e) => setNewAccount((p) => ({ ...p, balance: e.target.value }))}
+                style={{ marginTop: 6 }}
               />
-              <Input
-                placeholder="Institution (optional)"
+            </div>
+            <div>
+              <DripLabel>Institution</DripLabel>
+              <input
+                className={dripInputClass}
+                placeholder="Optional"
                 value={newAccount.institution}
                 onChange={(e) => setNewAccount((p) => ({ ...p, institution: e.target.value }))}
+                style={{ marginTop: 6 }}
               />
-              <Button type="submit">Add</Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+            <DripButton variant="primary" type="submit">
+              Add
+            </DripButton>
+          </form>
+        </DripCard>
       )}
 
-      {/* Assets */}
+      {/* ── Assets ── */}
       {assets.length > 0 && (
-        <div>
-          <h2 className="mb-3 text-lg font-semibold">Assets</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div style={{ marginBottom: 40 }}>
+          <SectionHead eyebrow="Holdings" title="Assets" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
             {assets.map((acct) => (
               <AccountCard
                 key={acct.id}
@@ -217,11 +287,11 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Liabilities */}
+      {/* ── Liabilities ── */}
       {liabilities.length > 0 && (
-        <div>
-          <h2 className="mb-3 text-lg font-semibold">Liabilities</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div style={{ marginBottom: 40 }}>
+          <SectionHead eyebrow="Owed" title="Liabilities" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
             {liabilities.map((acct) => (
               <AccountCard
                 key={acct.id}
@@ -240,24 +310,31 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {/* ── Empty state ── */}
       {!loading && accounts.length === 0 && !showAdd && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Landmark className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="text-lg font-medium">No accounts yet</p>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Add your bank accounts, credit cards, and investment accounts to track where your money lives.
-            </p>
-            <Button onClick={() => setShowAdd(true)} className="gap-2">
-              <Plus className="h-4 w-4" /> Add Your First Account
-            </Button>
-          </CardContent>
-        </Card>
+        <DripCard padding={48} style={{ textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, color: "var(--ink-3)" }}>
+            <DripIcon name="building" size={48} />
+          </div>
+          <p
+            className="font-display"
+            style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--ink)", margin: "0 0 8px" }}
+          >
+            No accounts yet
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 20px" }}>
+            Add your bank accounts, credit cards, and investment accounts to track where your money lives.
+          </p>
+          <DripButton icon="plus" variant="primary" onClick={() => setShowAdd(true)}>
+            Add Your First Account
+          </DripButton>
+        </DripCard>
       )}
     </div>
   );
 }
 
+/* ─── Account Card ─── */
 function AccountCard({
   account, editing, editBalance, onEditStart, onEditCancel, onEditSave, onEditChange, onDelete, onViewTransactions,
 }: {
@@ -271,63 +348,106 @@ function AccountCard({
   onDelete: () => void;
   onViewTransactions: () => void;
 }) {
+  const [hovered, setHovered] = useState(false);
   const cfg = TYPE_CONFIG[account.type] || TYPE_CONFIG.CHECKING;
-  const Icon = cfg.icon;
+  const accentColor = account.color || cfg.color;
+  const pillTone = PILL_TONE_MAP[account.type] || "neutral";
 
   return (
-    <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={onViewTransactions}>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${account.color || cfg.color}20`, color: account.color || cfg.color }}
-            >
-              <Icon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-medium">{account.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {cfg.label}
-                {account.institution && ` · ${account.institution}`}
-                {account.lastFour && ` ····${account.lastFour}`}
-              </p>
-            </div>
+    <DripCard
+      padding={20}
+      onClick={onViewTransactions}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: "pointer",
+        transition: "box-shadow 0.2s, border-color 0.2s",
+        borderColor: hovered ? "var(--ink-3)" : undefined,
+        boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : undefined,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Icon */}
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: `color-mix(in oklch, ${accentColor} 14%, transparent)`,
+              color: accentColor,
+            }}
+          >
+            <DripIcon name={cfg.icon} size={20} />
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
-            <Trash2 className="h-3 w-3 text-muted-foreground" />
-          </Button>
+          {/* Name + institution */}
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>
+              {account.name}
+            </p>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-3)" }}>
+              {account.institution || cfg.label}
+              {account.lastFour && ` \u00b7\u00b7\u00b7\u00b7${account.lastFour}`}
+            </p>
+          </div>
         </div>
+        {/* Delete button */}
+        <DripButton
+          variant="ghost"
+          size="sm"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          style={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s" }}
+        >
+          <DripIcon name="trash" size={14} style={{ color: "var(--ink-3)" }} />
+        </DripButton>
+      </div>
 
-        <div className="mt-4">
-          {editing ? (
-            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-              <Input
-                type="number"
-                step="0.01"
-                value={editBalance}
-                onChange={(e) => onEditChange(e.target.value)}
-                className="h-8 w-32"
-              />
-              <Button size="sm" variant="ghost" onClick={onEditSave}>
-                <Check className="h-3 w-3" />
-              </Button>
-              <Button size="sm" variant="ghost" onClick={onEditCancel}>
-                <X className="h-3 w-3" />
-              </Button>
+      {/* Balance row */}
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        {editing ? (
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 8 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              className={dripInputClass}
+              type="number"
+              step="0.01"
+              value={editBalance}
+              onChange={(e) => onEditChange(e.target.value)}
+              style={{ width: 120, height: 32 }}
+            />
+            <DripButton variant="ghost" size="sm" onClick={onEditSave}>
+              <DripIcon name="check" size={14} />
+            </DripButton>
+            <DripButton variant="ghost" size="sm" onClick={onEditCancel}>
+              <DripIcon name="x" size={14} />
+            </DripButton>
+          </div>
+        ) : (
+          <>
+            <Money
+              amount={account.isAsset ? account.balance : -Math.abs(account.balance)}
+              size="lg"
+              color={account.isAsset ? "var(--ink)" : "#C45B7A"}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Pill tone={pillTone}>{cfg.label}</Pill>
+              <DripButton
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onEditStart(); }}
+                style={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s" }}
+              >
+                Update
+              </DripButton>
             </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <p className={`text-xl font-bold ${account.isAsset ? "" : "text-red-600"}`}>
-                {account.isAsset ? "" : "-"}{formatCurrency(Math.abs(account.balance))}
-              </p>
-              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEditStart(); }} className="gap-1">
-                <Edit2 className="h-3 w-3" /> Update
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </>
+        )}
+      </div>
+    </DripCard>
   );
 }

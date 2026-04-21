@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Save, Plus, Trash2 } from "lucide-react";
+import { DripIcon } from "@/components/ui/drip-icons";
+import {
+  DripCard, DripButton, DripSelect, DripLabel, SectionHead, dripInputClass,
+} from "@/components/ui/drip-primitives";
 import { RulesManager } from "@/components/settings/rules-manager";
 
 interface Assumption {
@@ -62,13 +62,11 @@ export default function SettingsPage() {
   async function handleSave() {
     setSaving(true);
     setSaved(false);
-
     await fetch("/api/assumptions", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assumptions }),
     });
-
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -98,111 +96,141 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div style={{ padding: "28px 32px 60px", maxWidth: 1000, margin: "0 auto" }}>
+      {/* Header */}
+      <div className="flex justify-between items-end mb-7">
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">Settings</h1>
-          <p className="text-sm text-muted-foreground">
-            Adjust your assumptions to fine-tune your daily drip calculations
-          </p>
+          <div className="drip-eyebrow mb-2" style={{ color: "var(--ink-3)" }}>Settings</div>
+          <h1
+            className="font-display m-0"
+            style={{ fontSize: 40, fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.05 }}
+          >
+            Assumptions & rules
+          </h1>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="gap-2 sm:self-start">
-          <Save className="h-4 w-4" />
-          {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
-        </Button>
+        <DripButton variant="primary" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : saved ? "Saved!" : "Save changes"}
+        </DripButton>
       </div>
 
+      {/* Transaction Rules */}
       <RulesManager categories={categories} />
 
-      <AssumptionGroup
-        title="Item Shelf Life & Lifespan"
-        description="How long items last before needing replacement"
-        items={shelfLifeAssumptions}
-        assumptions={assumptions}
-        onUpdate={updateAssumption}
-        onRemove={removeAssumption}
-      />
-
-      <AssumptionGroup
-        title="Category Spread Periods"
-        description="How many days to spread category expenses over"
-        items={spreadAssumptions}
-        assumptions={assumptions}
-        onUpdate={updateAssumption}
-        onRemove={removeAssumption}
-      />
-
-      {otherAssumptions.length > 0 && (
+      {/* Shelf Life */}
+      <div className="mt-8">
+        <SectionHead eyebrow="Assumptions" title="Item shelf life & lifespan">
+          <div className="text-xs italic" style={{ color: "var(--ink-3)" }}>How long does a thing last?</div>
+        </SectionHead>
         <AssumptionGroup
-          title="Other"
-          description="Custom assumptions"
-          items={otherAssumptions}
+          items={shelfLifeAssumptions}
           assumptions={assumptions}
           onUpdate={updateAssumption}
           onRemove={removeAssumption}
         />
+      </div>
+
+      {/* Category spreads */}
+      <div className="mt-8">
+        <SectionHead eyebrow="Assumptions" title="Category spread periods" />
+        <AssumptionGroup
+          items={spreadAssumptions}
+          assumptions={assumptions}
+          onUpdate={updateAssumption}
+          onRemove={removeAssumption}
+        />
+      </div>
+
+      {/* Other */}
+      {otherAssumptions.length > 0 && (
+        <div className="mt-8">
+          <SectionHead eyebrow="Custom" title="Other assumptions" />
+          <AssumptionGroup
+            items={otherAssumptions}
+            assumptions={assumptions}
+            onUpdate={updateAssumption}
+            onRemove={removeAssumption}
+          />
+        </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Add Custom Assumption</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)} className="gap-1">
-              <Plus className="h-4 w-4" /> Add
-            </Button>
-          </div>
-        </CardHeader>
-        {showAdd && (
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
-              <Input
-                placeholder="Key (e.g., coffee_beans_shelf_life)"
-                value={newAssumption.key}
-                onChange={(e) => setNewAssumption((p) => ({ ...p, key: e.target.value }))}
-                className="w-64"
-              />
-              <Input
-                placeholder="Display name"
-                value={newAssumption.name}
-                onChange={(e) => setNewAssumption((p) => ({ ...p, name: e.target.value }))}
-                className="w-48"
-              />
-              <Input
-                type="number"
-                min={1}
-                value={newAssumption.value}
-                onChange={(e) => setNewAssumption((p) => ({ ...p, value: parseInt(e.target.value) || 1 }))}
-                className="w-24"
-              />
-              <select
-                value={newAssumption.unit}
-                onChange={(e) => setNewAssumption((p) => ({ ...p, unit: e.target.value }))}
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-              >
-                <option value="DAYS">Days</option>
-                <option value="WEEKS">Weeks</option>
-                <option value="MONTHS">Months</option>
-                <option value="YEARS">Years</option>
-              </select>
-              <Button onClick={addAssumption}>Add</Button>
+      {/* Add custom */}
+      <div className="mt-8">
+        <DripCard padding={0}>
+          <div
+            className="flex items-center justify-between px-[18px] py-3"
+            style={{ borderBottom: showAdd ? "1px solid var(--line)" : "none" }}
+          >
+            <div className="font-display text-lg" style={{ letterSpacing: "-0.01em" }}>
+              Add custom assumption
             </div>
-          </CardContent>
-        )}
-      </Card>
+            <DripButton variant="ghost" size="sm" icon="plus" onClick={() => setShowAdd(!showAdd)}>
+              Add
+            </DripButton>
+          </div>
+          {showAdd && (
+            <div className="px-[18px] py-4">
+              <div className="flex flex-wrap gap-3 items-end">
+                <div>
+                  <DripLabel>Key</DripLabel>
+                  <input
+                    placeholder="e.g., coffee_beans"
+                    value={newAssumption.key}
+                    onChange={(e) => setNewAssumption((p) => ({ ...p, key: e.target.value }))}
+                    className={dripInputClass + " mt-1.5 w-52"}
+                  />
+                </div>
+                <div>
+                  <DripLabel>Name</DripLabel>
+                  <input
+                    placeholder="Display name"
+                    value={newAssumption.name}
+                    onChange={(e) => setNewAssumption((p) => ({ ...p, name: e.target.value }))}
+                    className={dripInputClass + " mt-1.5 w-40"}
+                  />
+                </div>
+                <div>
+                  <DripLabel>Value</DripLabel>
+                  <input
+                    type="number"
+                    min={1}
+                    value={newAssumption.value}
+                    onChange={(e) => setNewAssumption((p) => ({ ...p, value: parseInt(e.target.value) || 1 }))}
+                    className={dripInputClass + " mt-1.5 w-20"}
+                  />
+                </div>
+                <div>
+                  <DripLabel>Unit</DripLabel>
+                  <div className="mt-1.5">
+                    <DripSelect
+                      value={newAssumption.unit}
+                      onChange={(v) => setNewAssumption((p) => ({ ...p, unit: v }))}
+                      options={[
+                        { value: "DAYS", label: "Days" },
+                        { value: "WEEKS", label: "Weeks" },
+                        { value: "MONTHS", label: "Months" },
+                        { value: "YEARS", label: "Years" },
+                      ]}
+                    />
+                  </div>
+                </div>
+                <DripButton variant="primary" size="sm" onClick={addAssumption}>
+                  Add
+                </DripButton>
+              </div>
+            </div>
+          )}
+        </DripCard>
+      </div>
     </div>
   );
 }
 
 function AssumptionGroup({
-  title,
-  description,
   items,
   assumptions,
   onUpdate,
   onRemove,
 }: {
-  title: string;
-  description: string;
   items: Assumption[];
   assumptions: Assumption[];
   onUpdate: (index: number, field: keyof Assumption, value: string | number) => void;
@@ -211,43 +239,50 @@ function AssumptionGroup({
   if (items.length === 0) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {items.map((a) => {
-            const globalIndex = assumptions.indexOf(a);
-            return (
-              <div key={a.key} className="flex items-center gap-3">
-                <span className="w-48 text-sm font-medium">{a.name}</span>
-                <Input
-                  type="number"
-                  min={1}
-                  value={a.value}
-                  onChange={(e) => onUpdate(globalIndex, "value", parseInt(e.target.value) || 1)}
-                  className="w-24"
-                />
-                <select
-                  value={a.unit}
-                  onChange={(e) => onUpdate(globalIndex, "unit", e.target.value)}
-                  className="rounded-md border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="DAYS">Days</option>
-                  <option value="WEEKS">Weeks</option>
-                  <option value="MONTHS">Months</option>
-                  <option value="YEARS">Years</option>
-                </select>
-                <Button variant="ghost" size="icon" onClick={() => onRemove(globalIndex)}>
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+    <DripCard padding={0}>
+      {items.map((a, i) => {
+        const globalIndex = assumptions.indexOf(a);
+        return (
+          <div
+            key={a.key}
+            className="grid items-center gap-3.5 px-[18px] py-2.5"
+            style={{
+              gridTemplateColumns: "1fr 100px 120px 40px",
+              borderBottom: i < items.length - 1 ? "1px solid var(--line-soft)" : "none",
+            }}
+          >
+            <input
+              value={a.name}
+              onChange={(e) => onUpdate(globalIndex, "name", e.target.value)}
+              className="text-[13px] font-medium bg-transparent border-0 p-0 outline-none"
+              style={{ color: "var(--ink)" }}
+            />
+            <input
+              type="number"
+              min={1}
+              value={a.value}
+              onChange={(e) => onUpdate(globalIndex, "value", parseInt(e.target.value) || 1)}
+              className={dripInputClass + " !py-1 !px-2 text-xs"}
+            />
+            <DripSelect
+              value={a.unit}
+              onChange={(v) => onUpdate(globalIndex, "unit", v)}
+              options={[
+                { value: "DAYS", label: "Days" },
+                { value: "WEEKS", label: "Weeks" },
+                { value: "MONTHS", label: "Months" },
+                { value: "YEARS", label: "Years" },
+              ]}
+            />
+            <button
+              onClick={() => onRemove(globalIndex)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)" }}
+            >
+              <DripIcon name="trash" size={13} />
+            </button>
+          </div>
+        );
+      })}
+    </DripCard>
   );
 }

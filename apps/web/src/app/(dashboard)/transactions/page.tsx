@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Upload, FileText, Check, X } from "lucide-react";
+import { DripIcon } from "@/components/ui/drip-icons";
+import {
+  DripCard, DripButton, DripSelect, DripLabel, DripCheckbox, Pill,
+  Money, CatBadge, fmtDaily, dripInputClass,
+} from "@/components/ui/drip-primitives";
 import { TransactionDetail } from "@/components/transactions/transaction-detail";
 import { toast } from "sonner";
 
@@ -52,11 +51,11 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState({ type: "", category: "", account: "" });
   const [initialized, setInitialized] = useState(false);
 
-  // Sync URL param to filter state on mount and when URL changes
   useEffect(() => {
     setFilter((f) => ({ ...f, account: accountFromUrl }));
     setInitialized(true);
   }, [accountFromUrl]);
+
   const [showAdd, setShowAdd] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -109,22 +108,13 @@ export default function TransactionsPage() {
 
   const unassignedCount = transactions.filter((t) => !t.fromAccount).length;
 
-  function toggleSelect(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
-
-  function toggleSelectAll() {
-    if (selectedIds.size === transactions.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(transactions.map((t) => t.id)));
-    }
   }
 
   async function bulkAssignAccount(accountId: string) {
@@ -162,10 +152,7 @@ export default function TransactionsPage() {
     const res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...newTx,
-        amount: parseFloat(newTx.amount),
-      }),
+      body: JSON.stringify({ ...newTx, amount: parseFloat(newTx.amount) }),
     });
     if (res.ok) {
       toast.success("Transaction added");
@@ -183,10 +170,6 @@ export default function TransactionsPage() {
     if (res.ok) toast.success("Transaction deleted");
     if (expandedId === id) setExpandedId(null);
     fetchTransactions();
-  }
-
-  function toggleExpand(id: string) {
-    setExpandedId(expandedId === id ? null : id);
   }
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -257,403 +240,354 @@ export default function TransactionsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold sm:text-2xl">Transactions</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { setShowUpload(!showUpload); setShowAdd(false); setUploadPreview(null); }} className="gap-2">
-            <Upload className="h-4 w-4" /> <span className="hidden sm:inline">Import</span>
-          </Button>
-          <Button onClick={() => { setShowAdd(!showAdd); setShowUpload(false); }} className="gap-2">
-            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add</span>
-          </Button>
+    <div style={{ padding: "28px 32px 60px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* Header */}
+      <div className="flex justify-between items-end mb-6">
+        <div>
+          <div className="drip-eyebrow mb-2" style={{ color: "var(--ink-3)" }}>Ledger</div>
+          <h1
+            className="font-display m-0"
+            style={{ fontSize: 40, fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1.05 }}
+          >
+            Transactions
+          </h1>
+        </div>
+        <div className="flex gap-2.5">
+          <DripButton
+            variant="outline"
+            icon="upload"
+            onClick={() => { setShowUpload(!showUpload); setShowAdd(false); setUploadPreview(null); }}
+          >
+            Import
+          </DripButton>
+          <DripButton
+            variant="primary"
+            icon="plus"
+            onClick={() => { setShowAdd(!showAdd); setShowUpload(false); }}
+          >
+            Add
+          </DripButton>
         </div>
       </div>
 
       {/* Upload Section */}
       {showUpload && !uploadPreview && (
-        <Card>
-          <CardContent className="pt-6">
-            {accounts.length > 0 && (
-              <div className="mb-4">
-                <label className="mb-1 block text-sm font-medium">Which account is this statement from?</label>
-                <select
-                  value={uploadAccountId}
-                  onChange={(e) => setUploadAccountId(e.target.value)}
-                  className="rounded-md border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">Select account (optional)</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div
-              {...getRootProps()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-                isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
-              }`}
-            >
-              <input {...getInputProps()} />
-              <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-              {uploading ? (
-                <p className="text-sm text-muted-foreground">Parsing file...</p>
-              ) : (
-                <>
-                  <p className="text-sm font-medium">Drop CSV or PDF statement here</p>
-                  <p className="mt-1 text-xs text-muted-foreground">or click to browse</p>
-                </>
-              )}
+        <DripCard className="mb-4">
+          <div className="flex justify-between items-center mb-3.5">
+            <div>
+              <div className="font-display text-lg" style={{ letterSpacing: "-0.01em" }}>Import transactions</div>
+              <div className="text-xs mt-0.5" style={{ color: "var(--ink-3)" }}>Drop a CSV or PDF statement.</div>
             </div>
-          </CardContent>
-        </Card>
+            <button onClick={() => setShowUpload(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4 }}>
+              <DripIcon name="x" size={14} />
+            </button>
+          </div>
+          {accounts.length > 0 && (
+            <div className="mb-3.5">
+              <DripLabel>Which account is this statement from?</DripLabel>
+              <div className="mt-1.5">
+                <DripSelect
+                  value={uploadAccountId}
+                  onChange={setUploadAccountId}
+                  options={[{ value: "", label: "Choose account..." }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+                />
+              </div>
+            </div>
+          )}
+          <div
+            {...getRootProps()}
+            className="flex flex-col items-center justify-center gap-2 rounded-[10px] p-8 cursor-pointer"
+            style={{
+              border: `1.5px dashed ${isDragActive ? "var(--accent)" : "var(--line)"}`,
+              background: isDragActive ? "color-mix(in oklch, var(--accent) 5%, var(--bg-2))" : "var(--bg-2)",
+              color: "var(--ink-3)",
+            }}
+          >
+            <input {...getInputProps()} />
+            <DripIcon name="upload" size={24} />
+            {uploading ? (
+              <div className="text-[13px] font-medium" style={{ color: "var(--ink-2)" }}>Parsing file...</div>
+            ) : (
+              <>
+                <div className="text-[13px] font-medium" style={{ color: "var(--ink-2)" }}>Drop CSV or PDF here</div>
+                <div className="text-[11.5px]">or click to browse</div>
+              </>
+            )}
+          </div>
+        </DripCard>
       )}
 
       {/* Upload Preview */}
       {uploadPreview && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium">
-                  <FileText className="mr-1 inline h-4 w-4" />
-                  {uploadPreview.count} transactions ({uploadPreview.format})
-                  {uploadPreview.duplicateCount > 0 && (
-                    <span className="ml-2 text-amber-600">{uploadPreview.duplicateCount} duplicates</span>
-                  )}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setUploadPreview(null); setShowUpload(false); }}>
-                  <X className="mr-1 h-3 w-3" /> Cancel
-                </Button>
-                <Button size="sm" onClick={handleCommitUpload} disabled={committing} className="gap-1">
-                  <Check className="h-3 w-3" />
-                  {committing ? "Importing..." : `Import ${uploadPreview.count - (uploadPreview.duplicateCount || 0)}`}
-                </Button>
-              </div>
+        <DripCard className="mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <div className="text-[11.5px]" style={{ color: "var(--ink-3)" }}>
+              Preview — {uploadPreview.count - (uploadPreview.duplicateCount || 0)} new
+              {uploadPreview.duplicateCount > 0 && `, ${uploadPreview.duplicateCount} duplicate`}
             </div>
-            <div className="max-h-[300px] overflow-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-card">
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="p-2">Date</th>
-                    <th className="p-2">Description</th>
-                    <th className="p-2">Category</th>
-                    <th className="p-2 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {uploadPreview.preview.map((tx: any, i: number) => (
-                    <tr key={`${tx.hash}-${i}`} className={`border-b ${tx.isDuplicate ? "opacity-40" : ""}`}>
-                      <td className="p-2 text-xs">{new Date(tx.date).toLocaleDateString()}</td>
-                      <td className="max-w-[200px] truncate p-2 text-xs">
-                        {tx.description}
-                        {tx.isDuplicate && <span className="ml-1 text-amber-600">(dup)</span>}
-                        {tx.isTransfer && <span className="ml-1 text-blue-500">(transfer)</span>}
-                      </td>
-                      <td className="p-2">
-                        <select
-                          value={tx.categoryId}
-                          onChange={(e) => handleUploadCategoryChange(tx.hash, e.target.value)}
-                          className="rounded border bg-background px-1 py-0.5 text-xs"
-                          disabled={tx.isDuplicate}
-                        >
-                          {uploadPreview.categories
-                            .filter((c: any) => c.type === tx.type || tx.type === "TRANSFER")
-                            .map((c: any) => (
-                              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                            ))}
-                        </select>
-                      </td>
-                      <td className="p-2 text-right text-xs font-medium">{formatCurrency(tx.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex gap-2.5">
+              <DripButton variant="outline" onClick={() => { setUploadPreview(null); setShowUpload(false); }}>Cancel</DripButton>
+              <DripButton variant="primary" onClick={handleCommitUpload} disabled={committing}>
+                {committing ? "Importing..." : `Import ${uploadPreview.count - (uploadPreview.duplicateCount || 0)} transactions`}
+              </DripButton>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {showAdd && (
-        <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-              <Input
-                placeholder="Description"
-                value={newTx.description}
-                onChange={(e) => setNewTx((p) => ({ ...p, description: e.target.value }))}
-                className="lg:col-span-2"
-                required
-              />
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="Amount"
-                value={newTx.amount}
-                onChange={(e) => setNewTx((p) => ({ ...p, amount: e.target.value }))}
-                required
-              />
-              <select
-                value={newTx.type}
-                onChange={(e) => setNewTx((p) => ({ ...p, type: e.target.value as "INCOME" | "EXPENSE" }))}
-                className="rounded-md border bg-background px-3 py-2 text-sm"
+          </div>
+          <div className="rounded-[10px] overflow-hidden" style={{ border: "1px solid var(--line)" }}>
+            {uploadPreview.preview.map((tx: any, i: number) => (
+              <div
+                key={`${tx.hash}-${i}`}
+                className="grid items-center gap-2.5 px-3.5 py-2.5 text-[12.5px]"
+                style={{
+                  gridTemplateColumns: "80px 1fr 160px 120px",
+                  background: tx.isDuplicate ? "rgba(217,122,60,0.08)" : "transparent",
+                  borderTop: i > 0 ? "1px solid var(--line-soft)" : "none",
+                  opacity: tx.isDuplicate ? 0.5 : 1,
+                }}
               >
-                <option value="EXPENSE">Expense</option>
-                <option value="INCOME">Income</option>
-              </select>
-              <Input
-                type="date"
-                value={newTx.date}
-                onChange={(e) => setNewTx((p) => ({ ...p, date: e.target.value }))}
-              />
-              <select
-                value={newTx.categoryId}
-                onChange={(e) => setNewTx((p) => ({ ...p, categoryId: e.target.value }))}
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-              >
-                <option value="">Category...</option>
-                {categories
-                  .filter((c) => c.type === newTx.type)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
-              </select>
-              <Button type="submit" className="sm:col-span-2 lg:col-span-6">Save</Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selection / assignment bar */}
-      {accounts.length > 0 && (selectedIds.size > 0 || unassignedCount > 0) && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800/30 dark:bg-blue-950/10">
-          {selectedIds.size > 0 ? (
-            <>
-              <span className="font-medium text-blue-800 dark:text-blue-400">
-                {selectedIds.size} selected
-              </span>
-              <span className="text-muted-foreground">Assign to:</span>
-            </>
-          ) : (
-            <>
-              <span className="text-amber-800 dark:text-amber-400">
-                {unassignedCount} without account
-              </span>
-              <span className="text-muted-foreground">Assign all to:</span>
-            </>
-          )}
-          <select
-            onChange={(e) => { if (e.target.value) bulkAssignAccount(e.target.value); e.target.value = ""; }}
-            className="rounded-md border bg-background px-2 py-1 text-sm"
-            defaultValue=""
-          >
-            <option value="" disabled>Select account...</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}</option>
+                <span className="font-num" style={{ color: "var(--ink-3)" }}>
+                  {new Date(tx.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+                <span>
+                  {tx.description}
+                  {tx.isDuplicate && <span className="ml-2 text-[10px]" style={{ color: "#9a501f" }}>(dup)</span>}
+                </span>
+                <select
+                  value={tx.categoryId}
+                  onChange={(e) => handleUploadCategoryChange(tx.hash, e.target.value)}
+                  disabled={tx.isDuplicate}
+                  className="rounded-md border px-2 py-1 text-xs"
+                  style={{ background: "var(--bg-2)", borderColor: "var(--line)", color: "var(--ink)" }}
+                >
+                  {uploadPreview.categories
+                    .filter((c: any) => c.type === tx.type || tx.type === "TRANSFER")
+                    .map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
+                <span className="text-right font-num">
+                  <Money amount={tx.amount} size="sm" signed />
+                </span>
+              </div>
             ))}
-          </select>
+          </div>
+        </DripCard>
+      )}
+
+      {/* Add form */}
+      {showAdd && (
+        <DripCard className="mb-4">
+          <div className="flex justify-between items-center mb-3.5">
+            <div className="font-display text-lg" style={{ letterSpacing: "-0.01em" }}>Add transaction</div>
+            <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4 }}>
+              <DripIcon name="x" size={14} />
+            </button>
+          </div>
+          <form onSubmit={handleAdd} className="grid grid-cols-4 gap-3">
+            <div className="col-span-2">
+              <DripLabel>Description</DripLabel>
+              <input value={newTx.description} onChange={(e) => setNewTx((p) => ({ ...p, description: e.target.value }))} placeholder="e.g. Coffee" className={dripInputClass + " mt-1.5"} required />
+            </div>
+            <div>
+              <DripLabel>Amount</DripLabel>
+              <input value={newTx.amount} onChange={(e) => setNewTx((p) => ({ ...p, amount: e.target.value }))} type="number" step="0.01" placeholder="0.00" className={dripInputClass + " mt-1.5"} required />
+            </div>
+            <div>
+              <DripLabel>Type</DripLabel>
+              <div className="mt-1.5">
+                <DripSelect value={newTx.type} onChange={(v) => setNewTx((p) => ({ ...p, type: v as "INCOME" | "EXPENSE" }))} options={[{ value: "EXPENSE", label: "Expense" }, { value: "INCOME", label: "Income" }]} />
+              </div>
+            </div>
+            <div>
+              <DripLabel>Date</DripLabel>
+              <input value={newTx.date} onChange={(e) => setNewTx((p) => ({ ...p, date: e.target.value }))} type="date" className={dripInputClass + " mt-1.5"} />
+            </div>
+            <div>
+              <DripLabel>Category</DripLabel>
+              <div className="mt-1.5">
+                <DripSelect
+                  value={newTx.categoryId}
+                  onChange={(v) => setNewTx((p) => ({ ...p, categoryId: v }))}
+                  options={[{ value: "", label: "Category..." }, ...categories.filter((c) => c.type === newTx.type).map((c) => ({ value: c.id, label: c.name }))]}
+                />
+              </div>
+            </div>
+            <div className="col-span-2 flex items-end">
+              <DripButton variant="primary" type="submit" className="w-full">Save</DripButton>
+            </div>
+          </form>
+        </DripCard>
+      )}
+
+      {/* Filter bar */}
+      <DripCard padding={0} className="mb-3.5">
+        <div className="flex items-center gap-2.5 px-4 py-3">
+          <DripIcon name="filter" size={14} style={{ color: "var(--ink-3)" }} />
+          <DripSelect
+            value={filter.type}
+            onChange={(v) => { setFilter((f) => ({ ...f, type: v })); setPage(1); }}
+            options={[
+              { value: "", label: "All types" },
+              { value: "EXPENSE", label: "Expenses" },
+              { value: "INCOME", label: "Income" },
+              { value: "TRANSFER", label: "Transfers" },
+            ]}
+          />
+          <DripSelect
+            value={filter.category}
+            onChange={(v) => { setFilter((f) => ({ ...f, category: v })); setPage(1); }}
+            options={[{ value: "", label: "All categories" }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+          />
+          <DripSelect
+            value={filter.account}
+            onChange={(v) => { setFilter((f) => ({ ...f, account: v })); setPage(1); }}
+            options={[{ value: "", label: "All accounts" }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+          />
+          <div className="ml-auto text-[11.5px] font-num" style={{ color: "var(--ink-3)" }}>
+            {transactions.length} transactions
+          </div>
+        </div>
+      </DripCard>
+
+      {/* Selection banner */}
+      {(selectedIds.size > 0 || unassignedCount > 0) && accounts.length > 0 && (
+        <div
+          className="flex items-center gap-3 px-4 py-2.5 mb-3 rounded-[10px]"
+          style={{
+            background: "color-mix(in oklch, var(--accent) 10%, var(--card-bg))",
+            border: "1px solid color-mix(in oklch, var(--accent) 30%, transparent)",
+          }}
+        >
+          <Pill tone="accent">{selectedIds.size > 0 ? `${selectedIds.size} selected` : `${unassignedCount} unassigned`}</Pill>
+          <span className="text-[12.5px]" style={{ color: "var(--ink-2)" }}>Assign to</span>
+          <DripSelect
+            value=""
+            onChange={(v) => { if (v) bulkAssignAccount(v); }}
+            options={[{ value: "", label: "Choose account..." }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+          />
           {selectedIds.size > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-xs"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)" }}
+            >
               Clear selection
-            </Button>
+            </button>
           )}
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <select
-          value={filter.type}
-          onChange={(e) => { setFilter((f) => ({ ...f, type: e.target.value })); setPage(1); }}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
+      {/* Table */}
+      <DripCard padding={0}>
+        <div
+          className="grid items-center gap-2 px-4 py-2.5"
+          style={{
+            gridTemplateColumns: "36px 28px 80px 1fr 150px 120px 100px 60px 36px",
+            borderBottom: "1px solid var(--line)",
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase" as const,
+            color: "var(--ink-3)",
+            fontWeight: 500,
+          }}
         >
-          <option value="">All types</option>
-          <option value="EXPENSE">Expenses</option>
-          <option value="INCOME">Income</option>
-          <option value="TRANSFER">Transfers</option>
-        </select>
-        <select
-          value={filter.category}
-          onChange={(e) => { setFilter((f) => ({ ...f, category: e.target.value })); setPage(1); }}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.icon} {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filter.account}
-          onChange={(e) => { setFilter((f) => ({ ...f, account: e.target.value })); setPage(1); }}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
-        >
-          <option value="">All accounts</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}{a.lastFour ? ` ····${a.lastFour}` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b text-left text-sm text-muted-foreground">
-                <th className="w-8 p-3 sm:p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === transactions.length && transactions.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </th>
-                <th className="w-8 p-3 sm:p-4"></th>
-                <th className="hidden p-3 sm:table-cell sm:p-4">Date</th>
-                <th className="p-3 sm:p-4">Description</th>
-                <th className="hidden p-3 md:table-cell sm:p-4">Category</th>
-                <th className="p-3 text-right sm:p-4">Amount</th>
-                <th className="hidden p-3 text-right lg:table-cell sm:p-4">Daily</th>
-                <th className="hidden p-3 text-right lg:table-cell sm:p-4">Spread</th>
-                <th className="p-3 sm:p-4"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx) => (
-                <>
-                  <tr
-                    key={tx.id}
-                    className={`cursor-pointer border-b transition-colors hover:bg-muted/50 ${expandedId === tx.id ? "bg-muted/30" : ""} ${selectedIds.has(tx.id) ? "bg-blue-50 dark:bg-blue-950/10" : ""}`}
-                    onClick={() => toggleExpand(tx.id)}
-                  >
-                    <td className="p-3 sm:p-4" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(tx.id)}
-                        onChange={() => toggleSelect(tx.id, { stopPropagation: () => {} } as any)}
-                        className="rounded"
-                      />
-                    </td>
-                    <td className="p-3 sm:p-4">
-                      {expandedId === tx.id ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </td>
-                    <td className="hidden p-3 text-sm sm:table-cell sm:p-4">{formatDate(tx.date)}</td>
-                    <td className="p-3 text-sm font-medium sm:p-4">
-                      <div className="flex items-center gap-2">
-                        <span>{tx.description}</span>
-                        {tx.fromAccount && (
-                          <span className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground lg:inline">
-                            {tx.fromAccount.name}{tx.fromAccount.lastFour ? ` ····${tx.fromAccount.lastFour}` : ""}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:hidden">
-                        <span>{formatDate(tx.date)}</span>
-                        {tx.fromAccount && (
-                          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
-                            {tx.fromAccount.name}
-                          </span>
-                        )}
-                        {tx.category && (
-                          <Badge variant="secondary" className="gap-1 text-[10px]">
-                            {tx.category.icon} {tx.category.name}
-                          </Badge>
-                        )}
-                        {tx.spreadDays > 1 && (
-                          <span>{formatCurrency(tx.dailyAmount)}/d &middot; {tx.spreadDays}d</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="hidden p-3 md:table-cell sm:p-4">
-                      {tx.category && (
-                        <Badge variant="secondary" className="gap-1">
-                          {tx.category.icon} {tx.category.name}
-                        </Badge>
-                      )}
-                    </td>
-                    <td className={`p-3 text-right text-sm font-semibold sm:p-4 ${tx.type === "INCOME" ? "text-green-600" : tx.type === "TRANSFER" ? "text-blue-500" : ""}`}>
-                      {tx.type === "INCOME" ? "+" : tx.type === "TRANSFER" ? "" : "-"}{formatCurrency(tx.amount)}
-                    </td>
-                    <td className="hidden p-3 text-right text-sm text-muted-foreground lg:table-cell sm:p-4">
-                      {formatCurrency(tx.dailyAmount)}/d
-                    </td>
-                    <td className="hidden p-3 text-right text-sm text-muted-foreground lg:table-cell sm:p-4">
-                      {tx.spreadDays}d
-                    </td>
-                    <td className="p-4 text-right">
-                      <Button variant="ghost" size="icon" onClick={(e) => handleDelete(e, tx.id)}>
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </td>
-                  </tr>
-                  {expandedId === tx.id && (
-                    <tr key={`${tx.id}-detail`}>
-                      <td colSpan={9}>
-                        <TransactionDetail
-                          transactionId={tx.id}
-                          amount={tx.amount}
-                          description={tx.description}
-                          spreadDays={tx.spreadDays}
-                          categories={categories}
-                          accounts={accounts}
-                          currentAccountId={tx.fromAccount?.id || null}
-                          onAccountChange={(accountId) => updateTransactionAccount(tx.id, accountId)}
-                          onUpdate={fetchTransactions}
-                        />
-                      </td>
-                    </tr>
+          <div></div><div></div><div>Date</div><div>Description</div><div>Category</div>
+          <div className="text-right">Amount</div><div className="text-right">Daily</div>
+          <div className="text-right">Spread</div><div></div>
+        </div>
+        {transactions.map((tx, i) => {
+          const isIncome = tx.type === "INCOME";
+          const isTransfer = tx.type === "TRANSFER";
+          const isExpanded = expandedId === tx.id;
+          const isSelected = selectedIds.has(tx.id);
+          return (
+            <div key={tx.id} style={{ borderBottom: (isExpanded || i === transactions.length - 1) ? "none" : "1px solid var(--line-soft)", background: isSelected ? "color-mix(in oklch, var(--accent) 5%, transparent)" : "transparent" }}>
+              <div
+                className="grid items-center gap-2 px-4 py-3 cursor-pointer"
+                style={{ gridTemplateColumns: "36px 28px 80px 1fr 150px 120px 100px 60px 36px" }}
+                onClick={() => setExpandedId(isExpanded ? null : tx.id)}
+              >
+                <div onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}>
+                  <DripCheckbox checked={isSelected} />
+                </div>
+                <div style={{ color: "var(--ink-3)", transform: isExpanded ? "rotate(90deg)" : "none", transition: "transform 140ms", display: "flex" }}>
+                  <DripIcon name="chevron-right" size={12} />
+                </div>
+                <div className="text-[11.5px] font-num" style={{ color: "var(--ink-3)" }}>
+                  {new Date(tx.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13px] font-medium truncate">{tx.description}</div>
+                  {tx.fromAccount && (
+                    <div className="text-[10.5px] mt-0.5" style={{ color: "var(--ink-3)" }}>
+                      {tx.fromAccount.name}
+                    </div>
                   )}
-                </>
-              ))}
-              {transactions.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
-                    No transactions found. Upload a CSV or add one manually.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+                <div>
+                  {tx.category && (
+                    <CatBadge name={tx.category.name} icon={tx.category.icon} color={tx.category.color} />
+                  )}
+                </div>
+                <div className="text-right">
+                  <Money
+                    amount={isIncome ? tx.amount : -tx.amount}
+                    size="sm"
+                    color={isIncome ? "var(--green)" : isTransfer ? "var(--blue)" : "var(--ink)"}
+                    signed
+                  />
+                </div>
+                <div className="text-right text-[11.5px] font-num" style={{ color: "var(--ink-3)" }}>
+                  {fmtDaily(tx.dailyAmount)}
+                </div>
+                <div className="text-right text-[11.5px] font-num" style={{ color: "var(--ink-3)" }}>
+                  {tx.spreadDays}d
+                </div>
+                <div
+                  onClick={(e) => handleDelete(e, tx.id)}
+                  className="flex justify-center cursor-pointer p-1"
+                  style={{ color: "var(--ink-3)" }}
+                >
+                  <DripIcon name="trash" size={13} />
+                </div>
+              </div>
 
+              {isExpanded && (
+                <div style={{ borderTop: "1px solid var(--line-soft)", borderBottom: "1px solid var(--line-soft)", background: "var(--bg-2)" }}>
+                  <TransactionDetail
+                    transactionId={tx.id}
+                    amount={tx.amount}
+                    description={tx.description}
+                    spreadDays={tx.spreadDays}
+                    categories={categories}
+                    accounts={accounts}
+                    currentAccountId={tx.fromAccount?.id || null}
+                    onAccountChange={(accountId) => updateTransactionAccount(tx.id, accountId)}
+                    onUpdate={fetchTransactions}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {transactions.length === 0 && (
+          <div className="p-8 text-center text-sm" style={{ color: "var(--ink-3)" }}>
+            No transactions found. Upload a CSV or add one manually.
+          </div>
+        )}
+      </DripCard>
+
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 mt-5">
+          <DripButton variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+            ← Prev
+          </DripButton>
+          <span className="text-sm font-num" style={{ color: "var(--ink-3)" }}>
             Page {page} of {totalPages}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <DripButton variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
+            Next →
+          </DripButton>
         </div>
       )}
     </div>
